@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+
+CFLAGS="-Werror
+        -Weverything
+        -Wno-declaration-after-statement
+        -Wno-padded
+        -Wno-switch-enum
+        -Wno-shadow
+        -Wno-unused-parameter
+        -Wno-disabled-macro-expansion
+        -Wno-unsafe-buffer-usage
+        -Wno-float-equal
+        -O0
+        -g
+        -std=c11
+        -lm"
+clang $CFLAGS src/onyo.c -o onyo

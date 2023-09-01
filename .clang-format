@@ -1,0 +1,19 @@
+TabWidth: 3
+IndentWidth: 3
+UseTab: Never
+PointerAlignment: Middle
+AlignAfterOpenBracket: BlockIndent
+AlignConsecutiveAssignments: false
+AlignOperands: false
+AllowShortBlocksOnASingleLine: Empty
+AlignTrailingComments: false
+ColumnLimit: 88
+AllowShortFunctionsOnASingleLine: Empty
+BreakBeforeBinaryOperators: All
+AlignOperands: AlignAfterOperator
+BinPackArguments: false
+IncludeBlocks: Regroup
+InsertBraces: true
+InsertTrailingCommas: Wrapped
+# RemoveSemicolon: true # REQUIRES clang-format 16
+SeparateDefinitionBlocks: Always
