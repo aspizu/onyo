@@ -540,6 +540,12 @@ Slice lexer_next(Lexer * lexer) {
          if (lexer->source[lexer->i] == '\0') {
             return LexerEOF;
          }
+         if (lexer->source[lexer->i] == '\\') {
+            lexer->i++;
+            if (lexer->source[lexer->i] == '\0') {
+               return LexerEOF;
+            }
+         }
          lexer->i++;
       }
       lexer->i++;
