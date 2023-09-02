@@ -45,6 +45,7 @@ expr: NULL|BOOL|INT|FLOAT|STRING|NAME|tuple|list
     | "index" "(" expr "," expr ")" -> index
     | "len" "(" expr ")" -> len
     | "if "expr "then" expr "else" expr -> ternary
+    | NAME ":=" expr -> walrus
 
 _exprlist: [expr ("," expr)*]
 _stringlist: [STRING ("," STRING)*]

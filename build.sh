@@ -3,6 +3,7 @@ set -e
 
 CFLAGS="-Werror
         -Weverything
+        -Wno-unknown-warning-option
         -Wno-declaration-after-statement
         -Wno-padded
         -Wno-switch-enum

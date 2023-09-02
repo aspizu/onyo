@@ -164,6 +164,7 @@ for item in [1, 2, 3] {
 | `!a`                 | Logical not operator.                             |
 | `iterable[index]`    | Get element at index in iterable.                 |
 | `if b then a else c` | If b then a else c.                               |
+| `var := val`         | Set var to val and return val.                    |
 
 For the arithmetic operators, if any one of the operands is a float, the result will
 be a float.

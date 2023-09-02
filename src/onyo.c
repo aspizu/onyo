@@ -679,13 +679,14 @@ void compile(State * state) {
    functions(state);
 }
 
-void builtin_set(State * state, Node * node) {
+Value * builtin_set(State * state, Node * node) {
    LEAF(variable, node CHILD(1)) {
       PANIC("Expected variable.\n");
    }
    Node * expr = node CHILD(2);
    Value * value = eval(state, expr);
    set_variable(state, variable->id, value);
+   return value_ref(value);
 }
 
 void builtin_print(State * state, Node * node) {
@@ -1500,6 +1501,8 @@ Value * eval(State * state, Node * node) {
             return builtin_type(state, node);
          case KeywordTernary:
             return builtin_ternary(state, node);
+         case KeywordSet:
+            return builtin_set(state, node);
          default:
             PANIC("Unexpected keyword.\n");
          }
@@ -1527,7 +1530,7 @@ Return exec(State * state, Node * node) {
    if (tag->token_type == TokenTypeKeyword) {
       switch (tag->_keyword) {
       case KeywordSet:
-         builtin_set(state, node);
+         value_drop(builtin_set(state, node));
          break;
       case KeywordPrint:
          builtin_print(state, node);

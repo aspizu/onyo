@@ -294,6 +294,7 @@ class Compiler(Interpreter, ErrorStorage):
         self.write(")")
 
     ternary = builtin("ternary")
+    walrus = builtin("set")
     list = builtin("list")
     tuple = builtin("tuple")
     print = builtin("print")

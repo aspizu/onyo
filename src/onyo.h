@@ -218,7 +218,7 @@ void variables(State * state, Node * node, SliceVec * variable_names);
 State state_new(FILE * file);
 void state_free(State * state);
 void compile(State * state);
-void builtin_set(State * state, Node * node);
+Value * builtin_set(State * state, Node * node);
 void builtin_print(State * state, Node * node);
 void builtin_setitem(State * state, Node * node);
 void builtin_push(State * state, Node * node);
