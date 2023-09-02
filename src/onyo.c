@@ -1403,6 +1403,12 @@ Value * builtin_getitem(State * state, Node * node) {
    switch (index->type) {
    case TypeInt:
       switch (list->type) {
+      case TypeStr:
+         if (0 <= index->_int && index->_int < (int)strlen(list->_str)) {
+            result = value_new_str_from_slice(&(Slice
+            ){.str = &list->_str[index->_int], .len = 1});
+         }
+         break;
       case TypeList:
          if (0 <= index->_int && index->_int < (int)list->_list.len) {
             result = value_ref(list->_list.data[index->_int]);
