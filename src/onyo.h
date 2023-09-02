@@ -85,6 +85,7 @@ enum Keyword {
    KeywordReturn,
    KeywordFor,
    KeywordType,
+   KeywordTernary,
 };
 
 typedef enum Type Type;
@@ -242,6 +243,7 @@ Value * builtin_int(State * state, Node * node);
 Value * builtin_float(State * state, Node * node);
 Value * builtin_str(State * state, Node * node);
 Value * builtin_type(State * state, Node * node);
+Value * builtin_ternary(State * state, Node * node);
 Value * eval(State * state, Node * node);
 Return exec(State * state, Node * node);
 Value * get_variable(State * state, usize id);

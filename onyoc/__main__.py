@@ -22,9 +22,16 @@ argparser.add_argument(
     help="Path to output file. If not given, onyo will be executed.",
 )
 
+argparser.add_argument(
+    "--onyo-path",
+    default="/usr/local/bin/onyo",
+    help="Path to the onyo interpreter executable.",
+)
+
 args = argparser.parse_args()
 input: Path = Path(args.input)
 output: Path | None = Path(args.output) if args.output else None
+onyo_path: Path = Path(args.onyo_path)
 
 
 if output:
@@ -39,5 +46,5 @@ else:
     if errors:
         t.w(f"{t.brred}--> Too many errors, cannot proceed.{t.reset}\n")
         exit(1)
-    subprocess.run(["onyo", output])
+    subprocess.run([onyo_path.absolute().as_posix(), output.absolute().as_posix()])
     output.unlink()

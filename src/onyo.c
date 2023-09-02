@@ -69,6 +69,7 @@ GetKeywordResult get_keyword(Slice token) {
    KEYWORD("return", KeywordReturn)
    KEYWORD("for", KeywordFor)
    KEYWORD("type", KeywordType)
+   KEYWORD("ternary", KeywordTernary)
    return (GetKeywordResult){.ok = false};
 }
 
@@ -391,6 +392,7 @@ void value_drop(Value * value) {
    value->references -= 1;
 }
 
+/* Coerce value to bool */
 bool value_as_bool(Value * value) {
    if (value == NULL) {
       return false;
@@ -398,8 +400,16 @@ bool value_as_bool(Value * value) {
    switch (value->type) {
    case TypeBool:
       return value->_bool;
-   default:
-      return false;
+   case TypeInt:
+      return (bool)value->_int;
+   case TypeFloat:
+      return (bool)value->_float;
+   case TypeStr:
+      return strlen(value->_str) != 0;
+   case TypeTuple:
+      return value->_tuple.len != 0;
+   case TypeList:
+      return value->_list.len != 0;
    }
 }
 
@@ -1214,61 +1224,21 @@ Value * builtin_not(State * state, Node * node) {
 }
 
 Value * builtin_and(State * state, Node * node) {
-   if (node->children.len != 3) {
-      PANIC("Call error.\n");
+   Value * left = eval(state, node CHILD(1));
+   if (value_as_bool(left)) {
+      value_drop(left);
+      return eval(state, node CHILD(2));
    }
-   Node * left = node CHILD(1);
-   Node * right = node CHILD(2);
-   Value * left_val = eval(state, left);
-   Value * right_val = eval(state, right);
-   Value * result = NULL;
-   if (left_val != NULL && right_val != NULL) {
-      switch (left_val->type) {
-      case TypeBool:
-         switch (right_val->type) {
-         case TypeBool:
-            result = value_new_bool(left_val->_bool && right_val->_bool);
-            break;
-         default:
-            break;
-         }
-         break;
-      default:
-         break;
-      }
-   }
-   value_drop(left_val);
-   value_drop(right_val);
-   return result;
+   return left;
 }
 
 Value * builtin_or(State * state, Node * node) {
-   if (node->children.len != 3) {
-      PANIC("Call error.\n");
+   Value * left = eval(state, node CHILD(1));
+   if (value_as_bool(left)) {
+      return left;
    }
-   Node * left = node CHILD(1);
-   Node * right = node CHILD(2);
-   Value * left_val = eval(state, left);
-   Value * right_val = eval(state, right);
-   Value * result = NULL;
-   if (left_val != NULL && right_val != NULL) {
-      switch (left_val->type) {
-      case TypeBool:
-         switch (right_val->type) {
-         case TypeBool:
-            result = value_new_bool(left_val->_bool || right_val->_bool);
-            break;
-         default:
-            break;
-         }
-         break;
-      default:
-         break;
-      }
-   }
-   value_drop(left_val);
-   value_drop(right_val);
-   return result;
+   value_drop(left);
+   return eval(state, node CHILD(2));
 }
 
 Value * builtin_list(State * state, Node * node) {
@@ -1321,26 +1291,10 @@ Value * builtin_index(State * state, Node * node) {
 
 Value * builtin_bool(State * state, Node * node) {
    Value * value = eval(state, node CHILD(1));
-   Value * result = NULL;
-   switch (value->type) {
-   case TypeBool:
+   if (value != NULL && value->type == TypeBool) {
       return value;
-   case TypeInt:
-      result = value_new_bool((bool)value->_int);
-      break;
-   case TypeFloat:
-      result = value_new_bool((bool)value->_float);
-      break;
-   case TypeStr:
-      if (0 == strcmp(value->_str, "true")) {
-         result = value_new_bool(true);
-      } else if (0 == strcmp(value->_str, "false")) {
-         result = value_new_bool(false);
-      }
-      break;
-   default:
-      break;
    }
+   Value * result = value_new_bool(value_as_bool(value));
    value_drop(value);
    return result;
 }
@@ -1466,6 +1420,18 @@ Value * builtin_type(State * state, Node * node) {
    return result;
 }
 
+Value * builtin_ternary(State * state, Node * node) {
+   Value * condition = eval(state, node CHILD(1));
+   Value * result = NULL;
+   if (value_as_bool(condition)) {
+      result = eval(state, node CHILD(2));
+   } else {
+      result = eval(state, node CHILD(3));
+   }
+   value_drop(condition);
+   return result;
+}
+
 Value * eval(State * state, Node * node) {
    switch (node->type) {
    case NodeTypeLeaf:
@@ -1532,6 +1498,8 @@ Value * eval(State * state, Node * node) {
             return builtin_str(state, node);
          case KeywordType:
             return builtin_type(state, node);
+         case KeywordTernary:
+            return builtin_ternary(state, node);
          default:
             PANIC("Unexpected keyword.\n");
          }

@@ -159,10 +159,11 @@ for item in [1, 2, 3] {
 | `a > b`           | Greater than operator. ditto.                     |
 | `a <= b`          | Less than equal to operator. ditto.               |
 | `a >= b`          | Greater than equal to operator. ditto.            |
-| `a \|\| b`        | Logical or operator. Does not short circuit.      |
-| `a && b`          | Logical and operator. ditto.                      |
+| `a \|\| b`        | If a then b else a.                               |
+| `a && b`          | If a then a else b.                               |
 | `!a`              | Logical not operator.                             |
 | `iterable[index]` | Get element at index in iterable.                 |
+| `b if a else c`   | If a then b else c.                               |
 
 For the arithmetic operators, if any one of the operands is a float, the result will
 be a float.
