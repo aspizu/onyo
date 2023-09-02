@@ -6,6 +6,7 @@ block: "{" exec* "}"
 
 exec: NAME SETOP expr ";" -> set
     | expr "[" expr "]" "=" expr ";" -> setitem
+    | expr "." NAME "=" expr ";" -> settableitem
     | "push" expr "," expr ";" -> push
     | "remove" expr "," expr ";" -> remove
     | "print" expr ";" -> print
@@ -18,7 +19,7 @@ exec: NAME SETOP expr ";" -> set
     | NAME "(" _exprlist ")" ";" -> call
     | "for" NAME "in" expr block -> forx
 
-expr: NULL|BOOL|INT|FLOAT|STRING|NAME|tuple|list
+expr: NULL|BOOL|INT|FLOAT|STRING|NAME|tuple|table|list
     | "(" expr ")"
     | NAME ":=" expr -> walrus
     | "if "expr "then" expr "else" expr -> ternary
@@ -46,11 +47,13 @@ expr: NULL|BOOL|INT|FLOAT|STRING|NAME|tuple|list
     | expr "[" expr "]" -> getitem
     | "index" "(" expr "," expr ")" -> index
     | "len" "(" expr ")" -> len
+    | expr "." NAME -> tableitem
 
 _exprlist: [expr ("," expr)*]
 _stringlist: [STRING ("," STRING)*]
 _namelist: [NAME ("," NAME)*]
 
+table: "{" [NAME ":" expr ("," NAME ":" expr)] "}"
 tuple: "{" _exprlist "}"
 list: "[" _exprlist "]"
 

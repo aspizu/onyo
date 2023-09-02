@@ -36,6 +36,7 @@ enum Type {
    TypeStr,
    TypeTuple,
    TypeList,
+   TypeTable,
 };
 
 enum NodeType {
@@ -86,6 +87,7 @@ enum Keyword {
    KeywordFor,
    KeywordType,
    KeywordTernary,
+   KeywordTable,
 };
 
 typedef enum Type Type;
@@ -95,6 +97,7 @@ typedef enum Keyword Keyword;
 typedef struct Return Return;
 typedef struct Slice Slice;
 typedef struct Tuple Tuple;
+typedef struct Table Table;
 typedef struct Value Value;
 typedef struct Node Node;
 typedef struct Lexer Lexer;
@@ -116,12 +119,18 @@ struct Slice {
 
 DEFINE_VEC(ValuePtrVec, Value *)
 DEFINE_VEC(CharVec, char)
+DEFINE_VEC(CharPtrVec, char *)
 DEFINE_VEC(NodePtrVec, Node *)
 DEFINE_VEC(SliceVec, Slice)
 
 struct Tuple {
    Value ** data;
    usize len;
+};
+
+struct Table {
+   CharPtrVec keys;
+   ValuePtrVec values;
 };
 
 struct Value {
@@ -135,6 +144,7 @@ struct Value {
       char * _str;
       Tuple _tuple;
       ValuePtrVec _list;
+      Table _table;
    };
 };
 
@@ -179,6 +189,10 @@ struct State {
    usize variables_begin;
 };
 
+Value * table_get(Table * table, char * key);
+void table_set(Table * table, char * key, Value * value);
+void table_remove(Table * table, char * key);
+void table_free(Table * table);
 GetKeywordResult get_keyword(Slice token);
 ParseIntResult parse_int(Slice slice);
 ParseFloatResult parse_float(Slice slice);
@@ -201,6 +215,7 @@ Value * value_new_str_from_slice(Slice * slice);
 Value * value_new_str_from_len(usize len);
 Value * value_new_str_from_literal(Slice * slice);
 Value * value_new_list(void);
+Value * value_new_table(void);
 void value_free(Value * value);
 Value * value_ref(Value * value);
 void value_drop(Value * value);
@@ -238,6 +253,7 @@ Value * builtin_not(State * state, Node * node);
 Value * builtin_and(State * state, Node * node);
 Value * builtin_or(State * state, Node * node);
 Value * builtin_list(State * state, Node * node);
+Value * builtin_table(State * state, Node * node);
 Value * builtin_getitem(State * state, Node * node);
 Value * builtin_len(State * state, Node * node);
 Value * builtin_index(State * state, Node * node);

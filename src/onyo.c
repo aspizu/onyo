@@ -25,12 +25,57 @@
    Node * VAR = NODE;                                                                  \
    if (VAR->type != NodeTypeLeaf)
 
+#define STREQ(left, right) 0 == strcmp(left, right)
+
 /* This could have been called List but it is also used in other places. */
 IMPL_VEC(ValuePtrVec, Value *, DEFAULT_EQUALS)
 /* CharVec.len will report the length of the contents + 1. */
 IMPL_VEC(CharVec, char, DEFAULT_EQUALS)
+IMPL_VEC(CharPtrVec, char *, STREQ)
 IMPL_VEC(NodePtrVec, Node *, DEFAULT_EQUALS)
 IMPL_VEC(SliceVec, Slice, slice_eq)
+
+Value * table_get(Table * table, char * key) {
+   usize index = CharPtrVec_index(&table->keys, key);
+   if (index == table->keys.len) {
+      return NULL;
+   }
+   return value_ref(table->values.data[index]);
+}
+
+void table_set(Table * table, char * key, Value * value) {
+   usize index = CharPtrVec_index(&table->keys, key);
+   if (index != table->keys.len) {
+      value_drop(table->values.data[index]);
+      table->values.data[index] = value;
+   } else {
+      char * keyclone = malloc(sizeof(char) * (strlen(key) + 1));
+      strcpy(keyclone, key);
+      CharPtrVec_push(&table->keys, keyclone);
+      ValuePtrVec_push(&table->values, value);
+   }
+}
+
+void table_remove(Table * table, char * key) {
+   usize index = CharPtrVec_index(&table->keys, key);
+   if (index != table->keys.len) {
+      free(table->keys.data[index]);
+      value_drop(table->values.data[index]);
+      CharPtrVec_remove(&table->keys, index);
+      ValuePtrVec_remove(&table->values, index);
+   }
+}
+
+void table_free(Table * table) {
+   for (usize i = 0; i < table->keys.len; i++) {
+      free(table->keys.data[i]);
+   }
+   for (usize i = 0; i < table->values.len; i++) {
+      value_drop(table->values.data[i]);
+   }
+   CharPtrVec_free(&table->keys);
+   ValuePtrVec_free(&table->values);
+}
 
 #define KEYWORD(STR, VAL)                                                              \
    if (slice_eq_str(token, STR)) {                                                     \
@@ -56,6 +101,7 @@ GetKeywordResult get_keyword(Slice token) {
    KEYWORD("&", KeywordAnd)
    KEYWORD("|", KeywordOr)
    KEYWORD("list", KeywordList)
+   KEYWORD("table", KeywordTable)
    KEYWORD("item", KeywordGetItem)
    KEYWORD("len", KeywordLen)
    KEYWORD("setitem", KeywordSetItem)
@@ -343,6 +389,15 @@ Value * value_new_list(void) {
    return value;
 }
 
+Value * value_new_table(void) {
+   Value * value = malloc(sizeof(Value));
+   value->references = 1;
+   value->type = TypeTable;
+   value->_table.keys = CharPtrVec_new();
+   value->_table.values = ValuePtrVec_new();
+   return value;
+}
+
 /* Recursively frees value, in future should defer freeing */
 void value_free(Value * value) {
    if (value == NULL) {
@@ -364,6 +419,9 @@ void value_free(Value * value) {
          value_drop(value->_list.data[i]);
       }
       ValuePtrVec_free(&value->_list);
+      break;
+   case TypeTable:
+      table_free(&value->_table);
       break;
    default:
       break;
@@ -410,6 +468,8 @@ bool value_as_bool(Value * value) {
       return value->_tuple.len != 0;
    case TypeList:
       return value->_list.len != 0;
+   case TypeTable:
+      return value->_table.values.len != 0;
    }
 }
 
@@ -525,6 +585,14 @@ void value_fprint(Value * value, FILE * file) {
       }
       fputs(")", file);
       break;
+   case TypeTable:
+      fputs("{", file);
+      for (usize i = 0; i < value->_table.values.len; i++) {
+         fprintf(file, "%s: ", value->_table.keys.data[i]);
+         value_fprint(value->_table.values.data[i], file);
+         fputs(", ", file);
+      }
+      fputs("}", file);
    }
 }
 
@@ -763,16 +831,49 @@ void builtin_setitem(State * state, Node * node) {
    Value * list = eval(state, node CHILD(1));
    Value * index = eval(state, node CHILD(2));
    Value * item = eval(state, node CHILD(3));
-   if (list->type == TypeList) {
-      if (index->type == TypeInt) {
+
+   if (list == NULL || index == NULL) {
+      value_drop(list);
+      value_drop(index);
+      value_drop(item);
+      return;
+   }
+
+   switch (index->type) {
+   case TypeInt:
+      switch (list->type) {
+      case TypeList:
          if (0 <= index->_int && index->_int < (int)list->_list.len) {
             value_drop(list->_list.data[index->_int]);
             list->_list.data[index->_int] = item;
+            value_drop(list);
+            value_drop(index);
+            return;
          }
+         break;
+      default:
+         break;
       }
+      break;
+   case TypeStr:
+      switch (list->type) {
+      case TypeTable: {
+         table_set(&list->_table, index->_str, item);
+         value_drop(list);
+         value_drop(index);
+         return;
+      }
+      default:
+         break;
+      }
+      break;
+   default:
+      break;
    }
+
    value_drop(index);
    value_drop(list);
+   value_drop(item);
 }
 
 void builtin_push(State * state, Node * node) {
@@ -1275,15 +1376,55 @@ Value * builtin_list(State * state, Node * node) {
    return list;
 }
 
+Value * builtin_table(State * state, Node * node) {
+   Value * table = value_new_table();
+   for (usize i = 1; i < node->children.len; i += 2) {
+      Value * key = eval(state, node CHILD(i));
+      if (key->type == TypeStr) {
+         Value * value = eval(state, node CHILD(i + 1));
+         table_set(&table->_table, key->_str, value);
+      }
+      value_drop(key);
+   }
+   return table;
+}
+
 Value * builtin_getitem(State * state, Node * node) {
    Value * list = eval(state, node CHILD(1));
    Value * index = eval(state, node CHILD(2));
-   Value * result = NULL;
-   if (list->type == TypeList && index->type == TypeInt) {
-      if (0 <= index->_int && index->_int < (int)list->_list.len) {
-         result = value_ref(list->_list.data[index->_int]);
-      }
+
+   if (list == NULL || index == NULL) {
+      value_drop(list);
+      value_drop(index);
+      return NULL;
    }
+
+   Value * result = NULL;
+   switch (index->type) {
+   case TypeInt:
+      switch (list->type) {
+      case TypeList:
+         if (0 <= index->_int && index->_int < (int)list->_list.len) {
+            result = value_ref(list->_list.data[index->_int]);
+         }
+         break;
+      default:
+         break;
+      }
+      break;
+   case TypeStr:
+      switch (list->type) {
+      case TypeTable:
+         result = table_get(&list->_table, index->_str);
+         break;
+      default:
+         break;
+      }
+      break;
+   default:
+      break;
+   }
+
    value_drop(list);
    value_drop(index);
    return result;
@@ -1439,6 +1580,9 @@ Value * builtin_type(State * state, Node * node) {
    case TypeList:
       result = value_new_str("list");
       break;
+   case TypeTable:
+      result = value_new_str("table");
+      break;
    }
    value_drop(value);
    return result;
@@ -1473,7 +1617,11 @@ Value * eval(State * state, Node * node) {
       case TokenTypeIdentifier:
          return get_variable(state, node->id);
       case TokenTypeKeyword:
-         PANIC("Unexpected keyword.\n");
+         PANIC(
+             "eval: Unexpected keyword in leaf node. (%.*s) \n",
+             (int)node->token.len,
+             node->token.str
+         );
       }
       break;
    case NodeTypeBranch: {
@@ -1526,8 +1674,10 @@ Value * eval(State * state, Node * node) {
             return builtin_ternary(state, node);
          case KeywordSet:
             return builtin_set(state, node);
+         case KeywordTable:
+            return builtin_table(state, node);
          default:
-            PANIC("Unexpected keyword.\n");
+            PANIC("eval: Unexpected keyword. (%d) \n", tag->_keyword);
          }
       } else if (tag->token_type == TokenTypeIdentifier) {
          for (usize i = 1; i < node->children.len; i++) {
@@ -1635,7 +1785,7 @@ Return exec(State * state, Node * node) {
             return (Return){.returned = true, value};
          }
       default:
-         PANIC("Unexpected keyword.\n");
+         PANIC("exec: Unexpected keyword. (%d) \n", tag->_keyword);
       }
    } else if (tag->token_type == TokenTypeIdentifier) {
       for (usize i = 1; i < node->children.len; i++) {

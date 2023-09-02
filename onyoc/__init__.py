@@ -293,6 +293,32 @@ class Compiler(Interpreter, ErrorStorage):
             self._elif(args[2:])
         self.write(")")
 
+    def table(self, node: Tree[Token]):
+        self.write("(table ")
+        it = iter(node.children)
+        for a, b in zip(it, it):
+            self.write(repr(str(a)).replace('"', '\\"').replace("'", '"'))
+            self.write(" ")
+            self.visit(b)
+            self.write(" ")
+        self.write(")")
+
+    def tableitem(self, node: Tree[Token]):
+        self.write("(item ")
+        self.visit(node.children[0])
+        self.write(" ")
+        self.write(repr(str(node.children[1])).replace('"', '\\"').replace("'", '"'))
+        self.write(")")
+
+    def settableitem(self, node: Tree[Token]):
+        self.write("(setitem ")
+        self.visit(node.children[0])
+        self.write(" ")
+        self.write(repr(str(node.children[1])).replace('"', '\\"').replace("'", '"'))
+        self.write(" ")
+        self.visit(node.children[2])
+        self.write(")")
+
     ternary = builtin("ternary")
     walrus = builtin("set")
     list = builtin("list")

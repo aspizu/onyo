@@ -5,6 +5,7 @@
 - [Data Types](#data-types)
   - [Tuples](#tuples)
   - [Lists](#lists)
+  - [Tables](#tables)
 - [Language Features](#language-features)
   - [Comments](#comments)
   - [Functions](#functions)
@@ -26,6 +27,7 @@
 | `str`   | Immutable string.                                         |
 | `tuple` | Immutable array of values.                                |
 | `list`  | Mutable dynamic array of values.                          |
+| `table` | Hash table with str keys.                                 |
 
 ## Tuples
 
@@ -50,6 +52,25 @@ remove a, len(a)-1;
 print index(a, 2);
 for i in a {
     print i;
+}
+```
+
+## Table
+
+Table keys can only be strings.
+
+```js
+def person(name, age) {
+    return {name: name, age: age};
+}
+
+def main() {
+    bdfl = person("aspizu", 18);
+    print bdfl;
+    bdfl.age = 10;
+    bdfl["age"] = 20;
+    print bdfl;
+    print bdfl["name"];
 }
 ```
 
