@@ -413,6 +413,58 @@ bool value_as_bool(Value * value) {
    }
 }
 
+int int_mod(int left, int right) {
+   int mod = left % right;
+   if (right < 0 != mod < 0) {
+      mod += right;
+   }
+   return mod;
+}
+
+double float_mod(double left, double right) {
+   double mod = fmod(left, right);
+   if (right < 0 != mod < 0) {
+      mod += right;
+   }
+   return mod;
+}
+
+Value * value_mod(Value * left, Value * right) {
+   if (left == NULL || right == NULL) {
+      return NULL;
+   }
+   Value * result = NULL;
+   switch (left->type) {
+   case TypeInt:
+      switch (right->type) {
+      case TypeInt:
+         result = value_new_int(int_mod(left->_int, right->_int));
+         break;
+      case TypeFloat:
+         result = value_new_float(float_mod((double)left->_int, right->_float));
+         break;
+      default:
+         break;
+      }
+      break;
+   case TypeFloat:
+      switch (right->type) {
+      case TypeInt:
+         result = value_new_float(float_mod(left->_float, (double)right->_int));
+         break;
+      case TypeFloat:
+         result = value_new_float(float_mod(left->_float, right->_float));
+         break;
+      default:
+         break;
+      }
+      break;
+   default:
+      break;
+   }
+   return result;
+}
+
 void value_fprint(Value * value, FILE * file) {
    if (value == NULL) {
       fputs("null", file);
@@ -951,46 +1003,11 @@ Value * builtin_div(State * state, Node * node) {
 }
 
 Value * builtin_mod(State * state, Node * node) {
-   if (node->children.len != 3) {
-      PANIC("Call error.\n");
-   }
-   Node * left = node CHILD(1);
-   Node * right = node CHILD(2);
-   Value * left_val = eval(state, left);
-   Value * right_val = eval(state, right);
-   Value * result = NULL;
-   if (left_val != NULL && right_val != NULL) {
-      switch (left_val->type) {
-      case TypeInt:
-         switch (right_val->type) {
-         case TypeInt:
-            result = value_new_int(left_val->_int % right_val->_int);
-            break;
-         case TypeFloat:
-            result = value_new_float(fmod((double)left_val->_int, right_val->_float));
-            break;
-         default:
-            break;
-         }
-         break;
-      case TypeFloat:
-         switch (right_val->type) {
-         case TypeInt:
-            result = value_new_float(fmod(left_val->_float, (double)right_val->_int));
-            break;
-         case TypeFloat:
-            result = value_new_float(fmod((double)left_val->_float, right_val->_float));
-            break;
-         default:
-            break;
-         }
-         break;
-      default:
-         break;
-      }
-   }
-   value_drop(left_val);
-   value_drop(right_val);
+   Value * left = eval(state, node CHILD(1));
+   Value * right = eval(state, node CHILD(2));
+   Value * result = value_mod(left, right);
+   value_drop(left);
+   value_drop(right);
    return result;
 }
 

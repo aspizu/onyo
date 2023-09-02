@@ -4,3 +4,4 @@ vgcore.*
 __pycache__/
 heavy.onyo
 compile_commands.json
+out.svg
