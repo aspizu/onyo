@@ -94,11 +94,11 @@
       "-x",
       "c",
       "-o",
-      "/tmp/onyo-478516.o",
+      "/tmp/onyo-7c150f.o",
       "src/onyo.c"
     ],
     "directory": "/home/aspizu/Projects/onyo",
     "file": "/home/aspizu/Projects/onyo/src/onyo.c",
-    "output": "/tmp/onyo-478516.o"
+    "output": "/tmp/onyo-7c150f.o"
   }
 ]

@@ -1,2 +1,5 @@
 vgcore.*
 .cache/
+*.egg-info/
+__pycache__/
+heavy.onyo

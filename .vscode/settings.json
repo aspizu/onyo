@@ -1,8 +1,10 @@
 {
   "files.exclude": {
-    ".cache/": true,
+    "**/.cache/": true,
     "onyo": true,
     "LICENSE": true,
-    "compile_commands.json": true
+    "compile_commands.json": true,
+    "**/*.egg-info/": true,
+    "**/__pycache__/": true
   }
 }

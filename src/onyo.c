@@ -67,6 +67,8 @@ GetKeywordResult get_keyword(Slice token) {
    KEYWORD("float", KeywordFloat)
    KEYWORD("str", KeywordStr)
    KEYWORD("return", KeywordReturn)
+   KEYWORD("for", KeywordFor)
+   KEYWORD("type", KeywordType)
    return (GetKeywordResult){.ok = false};
 }
 
@@ -76,7 +78,7 @@ ParseIntResult parse_int(Slice slice) {
    ParseIntResult result = {true, 0};
    char * endptr;
    result.value = (int)strtol(slice.str, &endptr, 0);
-   if (slice.str == endptr) {
+   if (slice.str == endptr || (usize)(endptr - slice.str) != slice.len) {
       result.ok = false;
    }
    return result;
@@ -85,8 +87,8 @@ ParseIntResult parse_int(Slice slice) {
 ParseFloatResult parse_float(Slice slice) {
    char * endptr;
    double value = strtod(slice.str, &endptr);
-   if (slice.str == endptr) {
-      return (ParseFloatResult){false, 0};
+   if (slice.str == endptr || (usize)(endptr - slice.str) != slice.len) {
+      return (ParseFloatResult){false};
    }
    return (ParseFloatResult){true, value};
 }
@@ -153,15 +155,15 @@ Node * node_new_leaf(Slice token) {
    } else if (slice_eq_str(token, "null")) {
       node->token_type = TokenTypeNull;
    } else {
-      ParseFloatResult result = parse_float(token);
+      ParseIntResult result = parse_int(token);
       if (result.ok) {
-         node->token_type = TokenTypeFloat;
-         node->_float = result.value;
+         node->token_type = TokenTypeInt;
+         node->_int = result.value;
       } else {
-         ParseIntResult result = parse_int(token);
+         ParseFloatResult result = parse_float(token);
          if (result.ok) {
-            node->token_type = TokenTypeInt;
-            node->_int = result.value;
+            node->token_type = TokenTypeFloat;
+            node->_float = result.value;
          } else {
             GetKeywordResult result = get_keyword(token);
             if (result.ok) {
@@ -1397,6 +1399,9 @@ Value * builtin_float(State * state, Node * node) {
 
 Value * builtin_str(State * state, Node * node) {
    Value * value = eval(state, node CHILD(1));
+   if (value == NULL) {
+      return value_new_str("null");
+   }
    Value * result = NULL;
    switch (value->type) {
    case TypeBool:
@@ -1425,6 +1430,36 @@ Value * builtin_str(State * state, Node * node) {
    case TypeStr:
       return value;
    default:
+      break;
+   }
+   value_drop(value);
+   return result;
+}
+
+Value * builtin_type(State * state, Node * node) {
+   Value * value = eval(state, node CHILD(1));
+   Value * result = NULL;
+   if (value == NULL) {
+      return value_new_str("null");
+   }
+   switch (value->type) {
+   case TypeBool:
+      result = value_new_str("bool");
+      break;
+   case TypeInt:
+      result = value_new_str("int");
+      break;
+   case TypeFloat:
+      result = value_new_str("float");
+      break;
+   case TypeStr:
+      result = value_new_str("str");
+      break;
+   case TypeTuple:
+      result = value_new_str("tuple");
+      break;
+   case TypeList:
+      result = value_new_str("list");
       break;
    }
    value_drop(value);
@@ -1495,6 +1530,8 @@ Value * eval(State * state, Node * node) {
             return builtin_float(state, node);
          case KeywordStr:
             return builtin_str(state, node);
+         case KeywordType:
+            return builtin_type(state, node);
          default:
             PANIC("Unexpected keyword.\n");
          }
@@ -1573,6 +1610,27 @@ Return exec(State * state, Node * node) {
             flag = value_as_bool(condition);
             value_drop(condition);
          }
+         break;
+      }
+      case KeywordFor: { /* (for VARIABLE LIST (...)) */
+         if (node->children.len < 4) {
+            PANIC("Malformed for.\n");
+         }
+         LEAF(variable, node CHILD(1)) {
+            PANIC("Expected identifier.\n");
+         }
+         Value * list = eval(state, node CHILD(2));
+         if (list->type == TypeList) {
+            for (usize i = 0; i < list->_list.len; i++) {
+               set_variable(state, variable->id, value_ref(list->_list.data[i]));
+               Return r = exec_all(state, node CHILD(3));
+               if (r.returned) {
+                  value_drop(list);
+                  return r;
+               }
+            }
+         }
+         value_drop(list);
          break;
       }
       case KeywordReturn:
@@ -1656,6 +1714,10 @@ void test(void) {
    ASSERT(slice_eq_str(str_as_slice("Something"), "Something"))
    ASSERT(!slice_eq_str(str_as_slice("Something123"), "Something"))
    ASSERT(!slice_eq_str(str_as_slice("Something"), "Something123"))
+   ASSERT(!parse_int(str_as_slice("1.0")).ok)
+   ASSERT(!parse_int(str_as_slice("1.0f")).ok)
+   ASSERT(!parse_float(str_as_slice("1.0a")).ok)
+   ASSERT(parse_int(str_as_slice("1")).ok)
 }
 
 int main(int argc, char ** argv) {
@@ -1675,8 +1737,6 @@ int main(int argc, char ** argv) {
       fclose(file);
    }
    compile(&state);
-   node_fprint(state.root, stdout);
-   puts("");
    run(&state);
    state_free(&state);
 }
