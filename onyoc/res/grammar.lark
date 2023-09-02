@@ -44,7 +44,7 @@ expr: NULL|BOOL|INT|FLOAT|STRING|NAME|tuple|list
     | expr "[" expr "]" -> getitem
     | "index" "(" expr "," expr ")" -> index
     | "len" "(" expr ")" -> len
-    | expr "if" expr "else" expr -> ternary
+    | "if "expr "then" expr "else" expr -> ternary
 
 _exprlist: [expr ("," expr)*]
 _stringlist: [STRING ("," STRING)*]

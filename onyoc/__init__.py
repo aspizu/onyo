@@ -293,15 +293,7 @@ class Compiler(Interpreter, ErrorStorage):
             self._elif(args[2:])
         self.write(")")
 
-    def ternary(self, node: Tree[Token]):
-        self.write("(ternary ")
-        self.visit(node.children[1])
-        self.write(" ")
-        self.visit(node.children[0])
-        self.write(" ")
-        self.visit(node.children[2])
-        self.write(")")
-
+    ternary = builtin("ternary")
     list = builtin("list")
     tuple = builtin("tuple")
     print = builtin("print")

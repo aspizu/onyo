@@ -145,25 +145,25 @@ for item in [1, 2, 3] {
 
 # Operators
 
-| Operator          | Description                                       |
-| ----------------- | ------------------------------------------------- |
-| `a + b`           | Adds numbers, concats strings.                    |
-| `a - b`           | Subtracts numbers.                                |
-| `-a`              | Subtract number from 0.                           |
-| `a * b`           | Multiplies numbers.                               |
-| `a / b`           | Divides numbers.                                  |
-| `a % b`           | Mod operator.                                     |
-| `a == b`          | Equality operator.                                |
-| `a != b`          | Not equals operator.                              |
-| `a < b`           | Less than operator. Compares numbers and strings. |
-| `a > b`           | Greater than operator. ditto.                     |
-| `a <= b`          | Less than equal to operator. ditto.               |
-| `a >= b`          | Greater than equal to operator. ditto.            |
-| `a \|\| b`        | If a then b else a.                               |
-| `a && b`          | If a then a else b.                               |
-| `!a`              | Logical not operator.                             |
-| `iterable[index]` | Get element at index in iterable.                 |
-| `b if a else c`   | If a then b else c.                               |
+| Operator             | Description                                       |
+| -------------------- | ------------------------------------------------- |
+| `a + b`              | Adds numbers, concats strings.                    |
+| `a - b`              | Subtracts numbers.                                |
+| `-a`                 | Subtract number from 0.                           |
+| `a * b`              | Multiplies numbers.                               |
+| `a / b`              | Divides numbers.                                  |
+| `a % b`              | Mod operator.                                     |
+| `a == b`             | Equality operator.                                |
+| `a != b`             | Not equals operator.                              |
+| `a < b`              | Less than operator. Compares numbers and strings. |
+| `a > b`              | Greater than operator. ditto.                     |
+| `a <= b`             | Less than equal to operator. ditto.               |
+| `a >= b`             | Greater than equal to operator. ditto.            |
+| `a \|\| b`           | If a then b else a.                               |
+| `a && b`             | If a then a else b.                               |
+| `!a`                 | Logical not operator.                             |
+| `iterable[index]`    | Get element at index in iterable.                 |
+| `if b then a else c` | If b then a else c.                               |
 
 For the arithmetic operators, if any one of the operands is a float, the result will
 be a float.
