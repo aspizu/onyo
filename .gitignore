@@ -3,3 +3,4 @@ vgcore.*
 *.egg-info/
 __pycache__/
 heavy.onyo
+compile_commands.json
