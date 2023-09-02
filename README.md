@@ -2,6 +2,8 @@
 
 onyo 🧅 is an interpreted programming language.
 
+[**Language Reference**](./wiki/language-reference.md)
+
 ```py
 🧅 fact(n) {
     if n <= 1 {

@@ -6,8 +6,8 @@ block: "{" exec* "}"
 
 exec: NAME SETOP expr ";" -> set
     | expr "[" expr "]" "=" expr ";" -> setitem
-    | expr "push" expr ";" -> push
-    | expr "remove" expr ";" -> remove
+    | "push" expr "," expr ";" -> push
+    | "remove" expr "," expr ";" -> remove
     | "print" expr ";" -> print
     | "return" expr ";" -> returnx
     | "if" expr block -> ifx
