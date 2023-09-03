@@ -42,43 +42,51 @@ usage() {
 	onyo compiler (onyoc) in the executable folder. 
 	
 	OPTIONS:
-		-g --global     perform a global installation
-		-h --help       shows this help message
+	    -g --global                    perform a global installation
+	    -h --help                      shows this help message
+	    --pip-break-system-packages    will pass --break-system-packages to the
+	                                   Python package installer
 	EOF
 }
 
 parse_args() {
     local ARGS="$@"
 
-    options=$(getopt -o g,h -l global,help -- "$ARGS")
-    eval set -- "$options"
+    local OPTIONS=$(getopt -o g,h -l global,help,pip-break-system-packages -- "$ARGS")
+    eval set -- "$OPTIONS"
     
     local GLOBAL=false
     local HELP=false
+    local PIP_BREAK_SYSTEM_PACKAGES=false
     
     while true; do
-      case "$1" in
-        -g | --global)
-          GLOBAL=true
-          shift
-          ;;
-        -h | --help)
-          HELP=true
-          shift
-          ;;
-        --)
-          shift
-          break
-          ;;
-        *)
-          warn "Invalid option: \$1"
-          exit 1
-          ;;
-      esac
+        case "$1" in
+            -g | --global)
+                GLOBAL=true
+                shift
+                ;;
+            -h | --help)
+                HELP=true
+                shift
+                ;;
+            --pip-break-system-packages)
+                PIP_BREAK_SYSTEM_PACKAGES=true
+                shift
+                ;;
+            --)
+                shift
+                break
+                ;;
+            *)
+                warn "Invalid option: \$1"
+                exit 1
+                ;;
+        esac
     done
 
     return $GLOBAL
     return $HELP
+    return $PIP_BREAK_SYSTEM_PACKAGES
 }
 
 warn() {
@@ -168,13 +176,48 @@ find_python() {
     return "$PYTHON"
 }
 
+parse_python_package_error() {
+    local ERROR="$1"
+
+    local ERROR_CODE=$( \
+        echo "$ERROR" \
+            | sed -n 's/^.*error: \(.*\)$/\1/p;q;' 2>/dev/null
+    )
+
+    case $ERROR_CODE in
+        "externally-managed-environment" )
+            warn "Could not install Python package due to externally managed Python"
+            warn "Run with --pip-break-system-packages"
+            ;;
+        "")
+            warn "Python warning:"
+            warn "$(fmt -w 84 <<< "$ERROR" \
+                | awk '{print "    " $0}'
+            )"
+            warn
+            ;;
+        *)
+            ;;
+    esac
+}
+
+
 build_python_package() {
     local GLOBAL=$1
     local PYTHON=$2
+    local PIP_BREAK_SYSTEM_PACKAGES=$3
 
-    warn "Installing python package"
-    "$PYTHON" -m pip install -r requirements.txt 1>/dev/null 
-    "$PYTHON" -m pip install -e . 1>/dev/null 
+    warn "Installing Python package"
+
+    local FLAGS=""
+    if $PIP_BREAK_SYSTEM_PACKAGES; then
+        warn "Will allow an externally managed Python to break system packages"
+        FLAGS="${FLAGS} --break-system-packages"
+    fi
+
+    "$PYTHON" -m pip install $FLAGS -r requirements.txt 1>/dev/null 2>/dev/null
+    "$PYTHON" -m pip install $FLAGS -e . 1>/dev/null 2>/tmp/Error
+    parse_python_package_error "$(</tmp/Error)"
 
     local COMMAND="#!/bin/bash\n$PYTHON -m onyoc \$@" 
 
@@ -195,6 +238,7 @@ main() {
 
     local GLOBAL=${ARGS[0]}
     local HELP=${ARGS[1]}
+    local PIP_BREAK_SYSTEM_PACKAGES=${ARGS[2]}
 
     if $HELP; then
         usage
@@ -205,7 +249,10 @@ main() {
     abort_if_needs_sudo $GLOBAL
 
     build_c_program $GLOBAL
-    build_python_package $GLOBAL $(find_python)
+    build_python_package $GLOBAL $(find_python) $PIP_BREAK_SYSTEM_PACKAGES
+
+    warn "Installation finished"
+    warn
 }
 
 main "$@"
