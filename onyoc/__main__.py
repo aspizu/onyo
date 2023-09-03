@@ -14,6 +14,7 @@ argparser = argparse.ArgumentParser(
 argparser.add_argument(
     "-input",
     help="Source file to compile.",
+    required=True,
 )
 
 argparser.add_argument(
