@@ -83,11 +83,17 @@ remove_python_package() {
 
     local REGEX='2s/^\([^[:space:]]*\).*$/\1/p'
     if $GLOBAL; then
-      PYTHON=$(cat /usr/local/bin/onyoc | sed -n "$REGEX")
-      sudo rm /usr/local/bin/onyoc
+        PYTHON=$(
+            cat /usr/local/bin/onyoc \
+                | sed -n "$REGEX"
+        )
+        sudo rm /usr/local/bin/onyoc
     else
-      PYTHON=$(cat ~/.local/bin/onyoc | sed -n "$REGEX")
-      rm ~/.local/bin/onyoc
+        PYTHON=$(
+            cat ~/.local/bin/onyoc \
+                | sed -n "$REGEX"
+        )
+        rm ~/.local/bin/onyoc
     fi
     
     "$PYTHON" -m pip uninstall onyoc -y 1>/dev/null 
@@ -104,6 +110,9 @@ main() {
 
     remove_c_program $GLOBAL
     remove_python_package $GLOBAL
+
+    warn "Uninstallation finished"
+    warn
 }
 
 main "$@"
