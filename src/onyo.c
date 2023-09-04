@@ -281,12 +281,17 @@ void node_free(Node * node) {
    free(node);
 }
 
+static Value TRUE = {.type = TypeBool, .references = 0, ._bool = true};
+static Value FALSE = {.type = TypeBool, .references = 0, ._bool = false};
+
 Value * value_new_bool(bool _bool) {
-   Value * value = malloc(sizeof(Value));
-   value->references = 1;
-   value->type = TypeBool;
-   value->_bool = _bool;
-   return value;
+   if (_bool) {
+      TRUE.references++;
+      return &TRUE;
+   } else {
+      FALSE.references++;
+      return &FALSE;
+   }
 }
 
 Value * value_new_int(int _int) {
@@ -400,7 +405,7 @@ Value * value_new_table(void) {
 
 /* Recursively frees value, in future should defer freeing */
 void value_free(Value * value) {
-   if (value == NULL) {
+   if (value == NULL || value == &TRUE || value == &FALSE) {
       return;
    }
    switch (value->type) {
@@ -453,6 +458,12 @@ void value_drop(Value * value) {
 /* Coerce value to bool */
 bool value_as_bool(Value * value) {
    if (value == NULL) {
+      return false;
+   }
+   if (value == &TRUE) {
+      return true;
+   }
+   if (value == &FALSE) {
       return false;
    }
    switch (value->type) {
@@ -1255,76 +1266,74 @@ Value * builtin_lt(State * state, Node * node) {
 }
 
 Value * builtin_gt(State * state, Node * node) {
-   if (node->children.len != 3) {
-      PANIC("Call error.\n");
+   Value * left = eval(state, node CHILD(1));
+   Value * right = eval(state, node CHILD(2));
+   if (left == NULL || right == NULL) {
+      value_drop(left);
+      value_drop(right);
+      return NULL;
    }
-   Node * left = node CHILD(1);
-   Node * right = node CHILD(2);
-   Value * left_val = eval(state, left);
-   Value * right_val = eval(state, right);
    Value * result = NULL;
-   if (left_val != NULL && right_val != NULL) {
-      switch (left_val->type) {
+   switch (left->type) {
+   case TypeBool:
+      switch (right->type) {
       case TypeBool:
-         switch (right_val->type) {
-         case TypeBool:
-            result = value_new_bool(left_val->_bool > right_val->_bool);
-            break;
-         case TypeInt:
-            result = value_new_bool(left_val->_bool > right_val->_int);
-            break;
-         case TypeFloat:
-            result = value_new_bool(left_val->_bool > right_val->_float);
-            break;
-         default:
-            break;
-         }
+         result = value_new_bool(left->_bool > right->_bool);
          break;
       case TypeInt:
-         switch (right_val->type) {
-         case TypeBool:
-            result = value_new_bool(left_val->_int > right_val->_bool);
-            break;
-         case TypeInt:
-            result = value_new_bool(left_val->_int > right_val->_int);
-            break;
-         case TypeFloat:
-            result = value_new_bool(left_val->_int > right_val->_float);
-            break;
-         default:
-            break;
-         }
+         result = value_new_bool(left->_bool > right->_int);
          break;
       case TypeFloat:
-         switch (right_val->type) {
-         case TypeBool:
-            result = value_new_bool(left_val->_float > right_val->_bool);
-            break;
-         case TypeInt:
-            result = value_new_bool(left_val->_float > right_val->_int);
-            break;
-         case TypeFloat:
-            result = value_new_bool(left_val->_float > right_val->_float);
-            break;
-         default:
-            break;
-         }
-         break;
-      case TypeStr:
-         switch (right_val->type) {
-         case TypeStr:
-            result = value_new_bool(0 > strcmp(left_val->_str, right_val->_str));
-            break;
-         default:
-            break;
-         }
+         result = value_new_bool(left->_bool > right->_float);
          break;
       default:
          break;
       }
+      break;
+   case TypeInt:
+      switch (right->type) {
+      case TypeBool:
+         result = value_new_bool(left->_int > right->_bool);
+         break;
+      case TypeInt:
+         result = value_new_bool(left->_int > right->_int);
+         break;
+      case TypeFloat:
+         result = value_new_bool(left->_int > right->_float);
+         break;
+      default:
+         break;
+      }
+      break;
+   case TypeFloat:
+      switch (right->type) {
+      case TypeBool:
+         result = value_new_bool(left->_float > right->_bool);
+         break;
+      case TypeInt:
+         result = value_new_bool(left->_float > right->_int);
+         break;
+      case TypeFloat:
+         result = value_new_bool(left->_float > right->_float);
+         break;
+      default:
+         break;
+      }
+      break;
+   case TypeStr:
+      switch (right->type) {
+      case TypeStr:
+         result = value_new_bool(0 > strcmp(left->_str, right->_str));
+         break;
+      default:
+         break;
+      }
+      break;
+   default:
+      break;
    }
-   value_drop(left_val);
-   value_drop(right_val);
+   value_drop(left);
+   value_drop(right);
    return result;
 }
 
@@ -1737,6 +1746,8 @@ Return exec(State * state, Node * node) {
 
          } else if (node->children.len == 5) {
             r = exec_all(state, node CHILD(4));
+         } else {
+            break;
          }
          if (r.returned) {
             return r;

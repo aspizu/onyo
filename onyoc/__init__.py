@@ -5,6 +5,7 @@ from typing import Union, cast
 
 from lark import Lark, Token, Tree, UnexpectedCharacters
 from lark.visitors import Visitor
+from rich import print
 
 from . import res
 
@@ -54,6 +55,18 @@ class Type:
 
         def __eq__(self, other: object) -> bool:
             return other in self.types
+
+        def without(self, type: "Type.T"):
+            try:
+                self.types.remove(type)
+            except ValueError:
+                pass
+            return self.unwrap()
+
+        def unwrap(self):
+            if len(self.types) == 1:
+                return self.types[0]
+            return self
 
 
 type: Type.T = Type.UNION(Type.NULL, Type.BOOL)
@@ -135,10 +148,10 @@ class ErrorStorage:
 class Interpreter:
     def visit(self, node: Tree[Token] | Token):
         if isinstance(node, Token):
-            if func := getattr(self, node.type):
+            if func := getattr(self, node.type, None):
                 func(node)
-        else:
-            if func := getattr(self, node.data):
+        elif node:
+            if func := getattr(self, node.data, None):
                 func(node)
 
     def visitchildren(self, node: Tree[Token]):
@@ -151,12 +164,20 @@ class Function:
     name: Token
     arguments: list[Token]
     body: Tree[Token]
+    variables: dict[str, "Variable"]
+
+
+@dataclass
+class Variable:
+    name: Token
+    type: Type.T
 
 
 class DefinitionCollector(Interpreter, ErrorStorage):
     def __init__(self, source: str, file: Path, root: Tree[Token]):
         super().__init__(source, file)
         self.functions: dict[str, Function] = {}
+        self.current_function: Function | None = None
         self.onyo = False
         self.visitchildren(root)
 
@@ -178,7 +199,24 @@ class DefinitionCollector(Interpreter, ErrorStorage):
         if arguments == [None]:
             arguments = []
         body = cast(Tree[Token], node.children[-1])
-        self.functions[str(name)] = Function(name, arguments, body)
+        self.functions[str(name)] = Function(name, arguments, body, {})
+        self.current_function = self.functions[str(name)]
+        self.visitchildren(node)
+        self.current_function = None
+
+    block = Interpreter.visitchildren
+    ifx = block
+    ifelse = block
+    ifelif = block
+    ifelifelse = block
+    whilex = block
+    forx = block
+
+    def set(self, node: Tree[Token]):
+        if self.current_function:
+            name = cast(Token, node.children[0])
+            if str(name) not in self.current_function.variables:
+                self.current_function.variables[str(name)] = Variable(name, Type.ANY)
 
 
 class TypeCheckerVisitor:
@@ -239,6 +277,9 @@ class TypeCheck(TypeCheckerVisitor, ErrorStorage):
 
     def STRING(self, token: Token):
         return Type.STR
+
+    def NAME(self, token: Token):
+        ...
 
     def expr(self, node: Tree[Token], types: list[Type.T]):
         return types[0]
@@ -329,6 +370,16 @@ class TypeCheck(TypeCheckerVisitor, ErrorStorage):
     mul = __binary
     div = __binary
     mod = __binary
+
+    def orx(self, node: Tree[Token], types: list[Type.T]):
+        return Type.UNION(types[0], types[1]).without(Type.NULL)
+
+    def andx(self, node: Tree[Token], types: list[Type.T]):
+        return Type.UNION(types[0], types[1]).without(Type.NULL)
+
+    def set(self, node: Tree[Token], types: list[Type.T]):
+        print(node)
+        print(types)
 
 
 class Linter(Visitor[Token], ErrorStorage):
@@ -595,8 +646,8 @@ def compile(input: Path, output: Path):
     errors.extend(defcol.errors)
     linter = Linter(source, input, defcol, root)
     errors.extend(linter.errors)
-    typechecker = TypeCheck(source, input, defcol, root)
-    errors.extend(typechecker.errors)
+    # typechecker = TypeCheck(source, input, defcol, root)
+    # errors.extend(typechecker.errors)
     compiler = Compiler(source, input, output, root)
     errors.extend(compiler.errors)
     return errors

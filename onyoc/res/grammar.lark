@@ -38,15 +38,15 @@ expr: NULL|BOOL|INT|FLOAT|STRING|NAME|tuple|table|list
     | expr "/" expr -> div
     | expr "%" expr -> mod
     | "-" expr -> minus
+    | expr "[" expr "]" -> getitem
     | "bool" "(" expr ")" -> bool
     | "int" "(" expr ")" -> int
     | "float" "(" expr ")" -> float
     | "str" "(" expr ")" -> str
     | "type" "(" expr ")" -> type
-    | NAME "(" _exprlist ")" -> call
-    | expr "[" expr "]" -> getitem
     | "index" "(" expr "," expr ")" -> index
     | "len" "(" expr ")" -> len
+    | NAME "(" _exprlist ")" -> call
     | expr "." NAME -> tableitem
 
 _exprlist: [expr ("," expr)*]
