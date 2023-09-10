@@ -1,0 +1,114 @@
+{
+   "functions": [
+      {
+         "name": "call",
+         "parameters": [
+            "a"
+         ],
+         "variables": [
+            "a"
+         ],
+         "body": [
+            {
+               "type": "Expr",
+               "expr": {
+                  "type": "BinaryOperation",
+                  "operator": "Push",
+                  "left": {
+                     "type": "Reference",
+                     "reference": {
+                        "Variable": 0
+                     }
+                  },
+                  "right": {
+                     "type": "UnaryOperation",
+                     "operator": "Str",
+                     "expr": {
+                        "type": "UnaryOperation",
+                        "operator": "Len",
+                        "expr": {
+                           "type": "Reference",
+                           "reference": {
+                              "Variable": 0
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+         ]
+      },
+      {
+         "name": "main",
+         "parameters": [],
+         "variables": [
+            "a"
+         ],
+         "body": [
+            {
+               "type": "Expr",
+               "expr": {
+                  "type": "SetVar",
+                  "variable": {
+                     "Variable": 0
+                  },
+                  "expr": {
+                     "type": "NaryOperation",
+                     "operator": "List",
+                     "parameters": [
+                        {
+                           "type": "Literal",
+                           "literal": {
+                              "Int": 1
+                           }
+                        },
+                        {
+                           "type": "Literal",
+                           "literal": {
+                              "Int": 2
+                           }
+                        },
+                        {
+                           "type": "Literal",
+                           "literal": {
+                              "Int": 3
+                           }
+                        }
+                     ]
+                  }
+               }
+            },
+            {
+               "type": "Expr",
+               "expr": {
+                  "type": "Call",
+                  "variable": {
+                     "Function": 0
+                  },
+                  "parameters": [
+                     {
+                        "type": "Reference",
+                        "reference": {
+                           "Variable": 0
+                        }
+                     }
+                  ]
+               }
+            },
+            {
+               "type": "Expr",
+               "expr": {
+                  "type": "UnaryOperation",
+                  "operator": "Print",
+                  "expr": {
+                     "type": "Reference",
+                     "reference": {
+                        "Variable": 0
+                     }
+                  }
+               }
+            }
+         ]
+      }
+   ]
+}

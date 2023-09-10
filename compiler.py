@@ -155,6 +155,7 @@ class BinaryOperator(enum):
    Push = auto()
    Remove = auto()
    Index = auto()
+   Join = auto()
 
 
 class TernaryOperator(enum):
@@ -261,7 +262,7 @@ class Expr(internally_tagged_enum):
 # fmt:off
 grammar = r'''
 start: func*
-func: IDENT "(" _identlist ")" _START block 
+func: IDENT "(" _identlist ")" block 
 block: "{" exec* "}"
 exec: assign | whilebranch | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret
 ret: "return" expr
@@ -272,7 +273,7 @@ dowhile: "do" block "while" expr
 ifblock: "if" expr block 
 ifelse: "if" expr block "else" block 
 ifelif: "if" expr block ("elif" expr block)+ 
-ifelifelse: "if" expr block ("elif" expr exec*)+ "else" block 
+ifelifelse: "if" expr block ("elif" expr block)+ "else" block 
 expr: NIL | BOOL | INT | FLOAT |  STRING
     | IDENT -> var
     | branch
@@ -299,14 +300,19 @@ expr: NIL | BOOL | INT | FLOAT |  STRING
     | minus
     | getitem
     | call
-    | custom
+    | list
+    | dict
+  //  | tuple
     | "(" expr ")"
+tuple: expr "," | expr ("," expr)+ | "(" ")"
+list: "[" _exprlist "]"
+dict: "{" (IDENT":" expr)* "}"
 branch: "if" expr "then" expr "else" expr
 orbranch: expr "or" expr
 andbranch: expr "and" expr 
 neq: expr "!=" expr
 eq: expr "==" expr
-identity: expr "===" expr
+identity: expr "is" expr
 lt: expr "<" expr
 gt: expr ">" expr
 leq: expr "<=" expr
@@ -326,13 +332,12 @@ knot: "not" expr
 minus: "-" expr
 getitem: expr "[" expr "]" | expr "." expr
 call: IDENT "(" _exprlist ")"
-custom: expr IDENT expr
 _exprlist: [expr ("," expr)*] 
 _identlist: [IDENT ("," IDENT)*] 
 NIL: "nil"
 BOOL: "true" | "false"
-CPP_COMMENT: "--" /[^\n]*/
-C_COMMENT: "/*" /(.|\n)*?/ "*/"
+CPP_COMMENT: ";" /[^\n]*/
+C_COMMENT: "<!--" /(.|\n)*?/ "-->"
 %import common.ESCAPED_STRING -> STRING
 %import common.CNAME -> IDENT
 %import common.SIGNED_INT -> INT
@@ -372,9 +377,10 @@ class I(lark.visitors.Interpreter[Token, None]):
          v.variables[i] = len(v.variables)
       self.functions[name] = (
          len(self.functions),
-         Function(name, parameters, list(v.variables.keys()), []),
+         Function(name, parameters, [], []),
       )
       self.functions[name][1].body = v.transform(body)
+      self.functions[name][1].variables = list(v.variables.keys())
 
 
 def ternary_operation(operator: TernaryOperator):
@@ -478,6 +484,9 @@ class V(lark.visitors.Transformer[Token, Block]):
          return Exec.Expr(Expr.SetVar(Reference.Variable(variable), args[1]))
       else:
          self.variables[name] = len(self.variables)
+         return Exec.Expr(
+            Expr.SetVar(Reference.Variable(self.variables[name]), args[1])
+         )
 
    branch = ternary_operation(TernaryOperator.Branch)
    orbranch = binary_operation(BinaryOperator.Or)
@@ -519,13 +528,34 @@ class V(lark.visitors.Transformer[Token, Block]):
       params = optional_list(args[1:])
       if name == "print":
          return Expr.UnaryOperation(UnaryOperator.Print, args[1])
+      elif name == "join":
+         return Expr.BinaryOperation(BinaryOperator.Join, args[1], args[2])
+      elif name == "bool":
+         return Expr.UnaryOperation(UnaryOperator.Bool, args[1])
+      elif name == "int":
+         return Expr.UnaryOperation(UnaryOperator.Int, args[1])
+      elif name == "float":
+         return Expr.UnaryOperation(UnaryOperator.Float, args[1])
+      elif name == "str":
+         return Expr.UnaryOperation(UnaryOperator.Str, args[1])
+      elif name == "len":
+         return Expr.UnaryOperation(UnaryOperator.Len, args[1])
+      elif name == "push":
+         return Expr.BinaryOperation(BinaryOperator.Push, args[1], args[2])
+      elif name == "remove":
+         return Expr.BinaryOperation(BinaryOperator.Remove, args[1], args[2])
+      elif name == "index":
+         return Expr.BinaryOperation(BinaryOperator.Index, args[1], args[2])
       elif function := self.i.functions.get(name):
          return Expr.Call(Reference.Function(function[0]), params)
       else:
          raise ValueError(name)
 
-   def custom(self, args: list[Any]):
-      return self.call([args[1], args[0], args[2]])
+   def tuple(self, args: list[Any]):
+      return Expr.NaryOperation(NaryOperator.Tuple, args)
+
+   def list(self, args: list[Any]):
+      return Expr.NaryOperation(NaryOperator.List, args)
 
 
 parser = lark.Lark(grammar, parser="earley", propagate_positions=True)

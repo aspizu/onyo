@@ -12,43 +12,43 @@
 -- closures aren't supported.
 
 -- onyo automatically executes the function named "main"
-main() = 
+main() {
    print("Hello, World!")
-   ;
+}
 
 -- onyo only supports local variables.
 -- all variables are initialized to nil.
 -- arguments are variables. onyo does not support
 -- variadic arguments or default arguments.
-foo(a, b) =
+foo(a, b) {
    print(c) --> nil
    c = a + b
-   ;
+}
 
 -- onyo supports two forms of loops.
 -- onyo does not support breaking out of loops.
 
 i = 0
-while i < 100
+while i < 100 {
    print(i)
    i += 1
-   ;
+}
 
 i = 0
-do
+do {
    print(i)
    i += 1
-while i < 100
+} while i < 100
 
 -- conditional statements
 
-if condition
+if condition {
    then()
-elif condition2
+} elif condition2 {
    then()
-else
+} else {
    otherwise()
-   ;
+}
 
 -- conditional expressions
 print(if condition then x else y) 
@@ -72,10 +72,9 @@ parser = {
    i: 0
 }
 
-expect(parser, token) = 
-   if parser.tokens[parser.i] == token
+expect(parser, token) {
+   if parser.tokens[parser.i] == token {
       parser.i += 1
       return parser.tokens[parser.i - 1]
-      ;
-   ;
-
+   }
+}

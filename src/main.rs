@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::fmt::{Display, Write};
 use std::fs::File;
 use std::io::BufReader;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
@@ -31,7 +32,7 @@ struct Function {
 /// Data-types
 #[derive(Debug, Clone)]
 enum Value {
-   None,
+   Nil,
    Bool(bool),
    Int(i64),
    Float(f64),
@@ -89,6 +90,7 @@ enum BinaryOperator {
    Push,
    Remove,
    Index,
+   Join,
 }
 
 /// Operators which take 3 parameters
@@ -215,7 +217,7 @@ fn fmod(left: f64, right: f64) -> f64 {
 impl std::fmt::Display for Value {
    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
       match self {
-         Value::None => {
+         Value::Nil => {
             write!(f, "none")?;
          },
          Value::Bool(bool) => {
@@ -232,7 +234,7 @@ impl std::fmt::Display for Value {
             write!(f, "{float}")?;
          },
          Value::Str(str) => {
-            write!(f, "{str}")?;
+            write!(f, "\"{str}\"")?;
          },
          Value::Tuple(tuple) => {
             write!(f, "{{")?;
@@ -276,7 +278,7 @@ impl Value {
    /// Must be used to use Value's as conditions.
    fn is_truthy(&self) -> bool {
       match self {
-         Value::None => false,
+         Value::Nil => false,
          Value::Bool(bool) => *bool,
          _ => true,
       }
@@ -284,7 +286,7 @@ impl Value {
 
    fn print(self) -> Value {
       println!("{self}");
-      Value::None
+      Value::Nil
    }
 
    fn add(self, right: Value) -> Value {
@@ -311,7 +313,7 @@ impl Value {
                .map(|(k, v)| (k.clone(), v.clone()))
                .collect(),
          ))),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -326,7 +328,7 @@ impl Value {
          (Value::Int(left), Value::Float(right)) => Value::Float(left as f64 - right),
          (Value::Float(left), Value::Int(right)) => Value::Float(left - right as f64),
          (Value::Float(left), Value::Float(right)) => Value::Float(left - right),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -335,7 +337,7 @@ impl Value {
          Value::Bool(value) => Value::Int(-(value as i64)),
          Value::Int(value) => Value::Int(-value),
          Value::Float(value) => Value::Float(-value),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -367,7 +369,7 @@ impl Value {
                      .collect(),
                ))
             } else {
-               Value::None
+               Value::Nil
             }
          },
          (Value::List(list), Value::Int(factor)) => {
@@ -380,10 +382,10 @@ impl Value {
                   .collect();
                Value::List(Rc::new(RefCell::new(list)))
             } else {
-               Value::None
+               Value::Nil
             }
          },
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -399,7 +401,7 @@ impl Value {
          (Value::Float(left), Value::Int(right)) => Value::Float(left / right as f64),
          (Value::Float(left), Value::Float(right)) => Value::Float(left / right),
          (Value::Str(_), Value::Str(_)) => unimplemented!(),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -415,7 +417,7 @@ impl Value {
          (Value::Float(left), Value::Int(right)) => Value::Float(fmod(left, right as f64)),
          (Value::Float(left), Value::Float(right)) => Value::Float(fmod(left, right)),
          (Value::Str(_), Value::Str(_)) => unimplemented!(),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -453,21 +455,21 @@ impl Value {
             Value::Bool(right) => Value::Bool(left < right),
             Value::Int(right) => Value::Bool((left as i64) < right),
             Value::Float(right) => Value::Bool((left as i64 as f64) < right),
-            _ => Value::None,
+            _ => Value::Nil,
          },
          Value::Int(left) => match other {
             Value::Bool(right) => Value::Bool(left < right as i64),
             Value::Int(right) => Value::Bool(left < right),
             Value::Float(right) => Value::Bool((left as f64) < right),
-            _ => Value::None,
+            _ => Value::Nil,
          },
          Value::Float(left) => match other {
             Value::Bool(right) => Value::Bool(left < right as i64 as f64),
             Value::Int(right) => Value::Bool(left < right as f64),
             Value::Float(right) => Value::Bool(left < right),
-            _ => Value::None,
+            _ => Value::Nil,
          },
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -477,63 +479,63 @@ impl Value {
             Value::Bool(right) => Value::Bool(left <= right),
             Value::Int(right) => Value::Bool((left as i64) <= right),
             Value::Float(right) => Value::Bool((left as i64 as f64) <= right),
-            _ => Value::None,
+            _ => Value::Nil,
          },
          Value::Int(left) => match other {
             Value::Bool(right) => Value::Bool(left <= right as i64),
             Value::Int(right) => Value::Bool(left <= right),
             Value::Float(right) => Value::Bool((left as f64) <= right),
-            _ => Value::None,
+            _ => Value::Nil,
          },
          Value::Float(left) => match other {
             Value::Bool(right) => Value::Bool(left <= right as i64 as f64),
             Value::Int(right) => Value::Bool(left <= right as f64),
             Value::Float(right) => Value::Bool(left <= right),
-            _ => Value::None,
+            _ => Value::Nil,
          },
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
    fn bitnot(self) -> Value {
       match self {
          Value::Int(int) => Value::Int(!int),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
    fn bitand(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => Value::Int(left & right),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
    fn bitor(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => Value::Int(left | right),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
    fn bitxor(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => Value::Int(left ^ right),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
    fn leftshift(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => Value::Int(left << right),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
    fn rightshift(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => Value::Int(left >> right),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -545,29 +547,29 @@ impl Value {
             str.chars().nth(index as usize)
          })
          .map(|v| Value::Str(Rc::from(format!("{v}"))))
-         .unwrap_or(Value::None),
+         .unwrap_or(Value::Nil),
          (Value::Tuple(tuple), Value::Int(mut index)) => {
             if index < 0 {
                index = tuple.len() as i64 - index;
             }
-            tuple.get(index as usize).unwrap_or(&Value::None).clone()
+            tuple.get(index as usize).unwrap_or(&Value::Nil).clone()
          },
          (Value::List(list), Value::Int(mut index)) => {
             let list = list.borrow();
             if index < 0 {
                index = list.len() as i64 - index;
             }
-            list.get(index as usize).unwrap_or(&Value::None).clone()
+            list.get(index as usize).unwrap_or(&Value::Nil).clone()
          },
-         (Value::Dict(dict), Value::Str(key)) => dict.borrow().get(&*key).unwrap_or(&Value::None).clone(),
-         _ => Value::None,
+         (Value::Dict(dict), Value::Str(key)) => dict.borrow().get(&*key).unwrap_or(&Value::Nil).clone(),
+         _ => Value::Nil,
       }
    }
 
    /// Returns the name of the Value's type as a str.
    fn typename(self) -> Value {
       match self {
-         Value::None => TYPE_NAME_NONE.with(|v| v.clone()),
+         Value::Nil => TYPE_NAME_NONE.with(|v| v.clone()),
          Value::Bool(_) => TYPE_NAME_BOOL.with(|v| v.clone()),
          Value::Int(_) => TYPE_NAME_INT.with(|v| v.clone()),
          Value::Float(_) => TYPE_NAME_FLOAT.with(|v| v.clone()),
@@ -592,7 +594,7 @@ impl Value {
          Value::Int(_) => self,
          Value::Float(float) => Value::Int(float as i64),
          Value::Str(_) => unimplemented!(),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -602,7 +604,7 @@ impl Value {
          Value::Int(int) => Value::Float(int as f64),
          Value::Float(_) => self,
          Value::Str(_) => unimplemented!(),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -613,21 +615,21 @@ impl Value {
    fn index(self, other: Value) -> Value {
       match self {
          Value::Str(str) => match other {
-            Value::Str(substr) => str.find(&*substr).map(|v| Value::Int(v as i64)).unwrap_or(Value::None),
-            _ => Value::None,
+            Value::Str(substr) => str.find(&*substr).map(|v| Value::Int(v as i64)).unwrap_or(Value::Nil),
+            _ => Value::Nil,
          },
          Value::Tuple(tuple) => tuple
             .iter()
             .position(|v| v.eq(&other))
             .map(|v| Value::Int(v as i64))
-            .unwrap_or(Value::None),
+            .unwrap_or(Value::Nil),
          Value::List(list) => list
             .borrow()
             .iter()
             .position(|v| v.eq(&other))
             .map(|v| Value::Int(v as i64))
-            .unwrap_or(Value::None),
-         _ => Value::None,
+            .unwrap_or(Value::Nil),
+         _ => Value::Nil,
       }
    }
 
@@ -637,7 +639,7 @@ impl Value {
          Value::Tuple(tuple) => Value::Int(tuple.len() as i64),
          Value::List(list) => Value::Int(list.borrow().len() as i64),
          Value::Dict(dict) => Value::Int(dict.borrow().len() as i64),
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -652,16 +654,16 @@ impl Value {
                if index < list.len() as i64 {
                   list.remove(index as usize)
                } else {
-                  Value::None
+                  Value::Nil
                }
             },
-            _ => Value::None,
+            _ => Value::Nil,
          },
          Value::Str(key) => match self {
-            Value::Dict(dict) => dict.borrow_mut().remove(&*key).unwrap_or(Value::None),
-            _ => Value::None,
+            Value::Dict(dict) => dict.borrow_mut().remove(&*key).unwrap_or(Value::Nil),
+            _ => Value::Nil,
          },
-         _ => Value::None,
+         _ => Value::Nil,
       }
    }
 
@@ -670,7 +672,7 @@ impl Value {
          Value::List(list) => list.borrow_mut().push(other),
          _ => {},
       }
-      Value::None
+      Value::Nil
    }
 
    fn setitem(&self, key: Value, item: Value) -> Value {
@@ -695,8 +697,35 @@ impl Value {
          },
          _ => {},
       }
-      Value::None
+      Value::Nil
    }
+
+   fn join(&self, other: Value) -> Value {
+      let sep = match other {
+         Value::Str(str) => str,
+         _ => {
+            return Value::Nil;
+         },
+      };
+      match self {
+         Value::Tuple(tuple) => join_values(tuple.iter(), &*sep),
+         Value::List(list) => join_values(list.borrow().iter(), &*sep),
+         Value::Dict(dict) => join_values(dict.borrow().values(), &*sep),
+         _ => Value::Nil,
+      }
+   }
+}
+
+fn join_values<'a>(values: impl Iterator<Item = &'a (impl Display + 'a)>, sep: &str) -> Value {
+   let mut joined = String::new();
+   let mut it = values.peekable();
+   while let Some(item) = it.next() {
+      write!(joined, "{item}").unwrap();
+      if it.peek().is_some() {
+         write!(joined, "{sep}").unwrap();
+      }
+   }
+   Value::Str(joined.into())
 }
 
 impl Exec {
@@ -790,7 +819,7 @@ impl Expr {
       match self {
          Expr::Literal { literal } => match literal {
             // FIXME: Cache literals.
-            Literal::Nil => Value::None,
+            Literal::Nil => Value::Nil,
             Literal::Bool(bool) => Value::Bool(*bool),
             Literal::Int(int) => Value::Int(*int),
             Literal::Float(float) => Value::Float(*float),
@@ -833,6 +862,7 @@ impl Expr {
             BinaryOperator::Push => left.eval(data, state).push(right.eval(data, state)),
             BinaryOperator::Remove => left.eval(data, state).remove(right.eval(data, state)),
             BinaryOperator::Index => left.eval(data, state).index(right.eval(data, state)),
+            BinaryOperator::Join => left.eval(data, state).join(right.eval(data, state)),
          },
          Expr::TernaryOperation {
             operator,
@@ -853,7 +883,7 @@ impl Expr {
          },
          Expr::Dict { .. } => unimplemented!(),
          Expr::Call { variable, parameters } => match variable {
-            Reference::Function(function_id) => call(data, state, *function_id, parameters).unwrap_or(Value::None),
+            Reference::Function(function_id) => call(data, state, *function_id, parameters).unwrap_or(Value::Nil),
             Reference::Variable(_) => unimplemented!(),
          },
          Expr::SetVar { variable, expr } => match variable {
@@ -876,11 +906,11 @@ fn call(data: &Data, state: &mut State, function_id: usize, parameters: &Vec<Exp
       let v = param.eval(data, state);
       state.variables.push(v);
    }
+   for _ in 0..(function.variables.len() - function.parameters.len()) {
+      state.variables.push(Value::Nil);
+   }
    let old_variables_begin = state.variables_begin;
    state.variables_begin = new_variables_begin;
-   for _ in 0..(function.variables.len() - function.parameters.len()) {
-      state.variables.push(Value::None);
-   }
    let ret = Exec::exec_all(data, state, &function.body);
    state
       .variables

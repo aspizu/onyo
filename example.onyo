@@ -1,0 +1,9 @@
+call(a) {
+   push(a, str(len(a)))
+}
+
+main() {
+   a = [1, 2, 3]
+   call(a)
+   print(a)
+}
