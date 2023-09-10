@@ -1,7 +1,1 @@
-vgcore.*
-.cache/
-*.egg-info/
-__pycache__/
-heavy.onyo
-compile_commands.json
-out.svg
+/target

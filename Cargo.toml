@@ -1,0 +1,9 @@
+[package]
+name = "onyo-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["jan Apisu <aspizu@protonmail.com>"]
+
+[dependencies]
+serde = { version= "1.0.188", features = [ "derive" ] }
+serde_json = "1.0.105"

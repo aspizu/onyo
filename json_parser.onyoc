@@ -1,7 +1,0 @@
-(defun (expect state token) (
-    (if  (=  (item  (item state "tokens") 
-    (item state "i")) token)
-     ((setitem state "i" (+  (item state "i") 1)) (return  token) ))
-      ))
-      (defun (consume state)((set i (item state "i"))
-       (setitem state "i" (+  (item state "i") 1)) (return  (item  (item state "tokens") i)) ))(defun (object state)((if  (expect state "{" ) ((set t (tuple )) (while  (|  (set  k (consume state )) (expect state ":" )) ((setitem  t k (consume state )) )) (expect state "}" ) (return  t) )) (return  (consume state )) ))(defun (main )((set state (table "tokens" (list  "{" "\"x\"" ":" "1" "}") "i" 0 )) (print  (object state )) (print  "\n") ))
