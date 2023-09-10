@@ -261,18 +261,18 @@ class Expr(internally_tagged_enum):
 # fmt:off
 grammar = r'''
 start: func*
-func: IDENT "(" _identlist ")" "=" block _END
-block: exec*
+func: IDENT "(" _identlist ")" _START block 
+block: "{" exec* "}"
 exec: assign | whilebranch | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret
 ret: "return" expr
 execexpr: "eval" expr
 assign: IDENT "=" expr
-whilebranch: "while" expr block _END
+whilebranch: "while" expr block 
 dowhile: "do" block "while" expr
-ifblock: "if" expr block _END
-ifelse: "if" expr block "else" block _END
-ifelif: "if" expr block ("elif" expr block)+ _END
-ifelifelse: "if" expr block ("elif" expr exec*)+ "else" block _END
+ifblock: "if" expr block 
+ifelse: "if" expr block "else" block 
+ifelif: "if" expr block ("elif" expr block)+ 
+ifelifelse: "if" expr block ("elif" expr exec*)+ "else" block 
 expr: NIL | BOOL | INT | FLOAT |  STRING
     | IDENT -> var
     | branch
@@ -329,7 +329,6 @@ call: IDENT "(" _exprlist ")"
 custom: expr IDENT expr
 _exprlist: [expr ("," expr)*] 
 _identlist: [IDENT ("," IDENT)*] 
-_END: ";"
 NIL: "nil"
 BOOL: "true" | "false"
 CPP_COMMENT: "--" /[^\n]*/
