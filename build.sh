@@ -12,8 +12,9 @@ CFLAGS="-Werror
         -Wno-disabled-macro-expansion
         -Wno-unsafe-buffer-usage
         -Wno-float-equal
-        -O0
-        -g
+        -Ofast
         -std=c11
         -lm"
 clang $CFLAGS src/onyo.c -o onyo
+
+        #-pg

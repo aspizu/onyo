@@ -6,7 +6,7 @@
 /* sexpr - A dynamic interpreted programming language. *
  * ----------------------------------------------------------------------------------
  * * This uses reference counting to automatically manage memory. The syntax is
- * * LISP-like, which means it uses S-expressions. This was choosen because *
+ * * LISP-like, which means it uses S-expressions. This was chosen because *
  * S-expressions are notoriously easy to parse. */
 
 #define LEXER_FOR_EACH(LEXER, VARIABLE)                                                \
