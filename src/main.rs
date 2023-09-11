@@ -1,6 +1,8 @@
 use serde::Deserialize;
+use std::error::Error;
 use std::fmt::{Display, Write};
 use std::fs::File;
+use std::fs::{read_to_string, write};
 use std::io::BufReader;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -33,6 +35,7 @@ struct Function {
 #[derive(Debug, Clone)]
 enum Value {
    Nil,
+   Err(Box<Value>),
    Bool(bool),
    Int(i64),
    Float(f64),
@@ -59,12 +62,14 @@ enum UnaryOperator {
    BitNot,
    Minus,
    Type,
+   Err,
    Bool,
    Int,
    Float,
    Str,
    Len,
    Print,
+   Read,
 }
 
 /// Operators which take 2 parameters
@@ -91,6 +96,7 @@ enum BinaryOperator {
    Remove,
    Index,
    Join,
+   Write,
 }
 
 /// Operators which take 3 parameters
@@ -186,14 +192,15 @@ enum Expr {
 
 // Cache for the values returned by the type name operator.
 thread_local! {
-   static TYPE_NAME_NONE: Value = Value::Str("None".into());
-   static TYPE_NAME_BOOL: Value = Value::Str("Bool".into());
-   static TYPE_NAME_INT: Value = Value::Str("Int".into());
-   static TYPE_NAME_FLOAT: Value = Value::Str("Float".into());
-   static TYPE_NAME_STR: Value = Value::Str("Str".into());
-   static TYPE_NAME_TUPLE: Value = Value::Str("Tuple".into());
-   static TYPE_NAME_LIST: Value = Value::Str("List".into());
-   static TYPE_NAME_DICT: Value = Value::Str("Dict".into());
+   static TYPE_NAME_NIL: Value = Value::Str("nil".into());
+   static TYPE_NAME_ERR: Value = Value::Str("err".into());
+   static TYPE_NAME_BOOL: Value = Value::Str("bool".into());
+   static TYPE_NAME_INT: Value = Value::Str("int".into());
+   static TYPE_NAME_FLOAT: Value = Value::Str("float".into());
+   static TYPE_NAME_STR: Value = Value::Str("str".into());
+   static TYPE_NAME_TUPLE: Value = Value::Str("tuple".into());
+   static TYPE_NAME_LIST: Value = Value::Str("list".into());
+   static TYPE_NAME_DICT: Value = Value::Str("dict".into());
 }
 
 /// Python-like modulo operator for integers.
@@ -218,7 +225,10 @@ impl std::fmt::Display for Value {
    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
       match self {
          Value::Nil => {
-            write!(f, "none")?;
+            write!(f, "nil")?;
+         },
+         Value::Err(err) => {
+            write!(f, "err({})", err)?;
          },
          Value::Bool(bool) => {
             if *bool {
@@ -278,8 +288,7 @@ impl Value {
    /// Must be used to use Value's as conditions.
    fn is_truthy(&self) -> bool {
       match self {
-         Value::Nil => false,
-         Value::Bool(bool) => *bool,
+         Value::Nil | Value::Err(_) | Value::Bool(false) => false,
          _ => true,
       }
    }
@@ -433,6 +442,7 @@ impl Value {
          (Value::Int(left), Value::Float(right)) => *left == *right as i64,
          (Value::Float(left), Value::Int(right)) => *left as i64 == *right,
          (Value::Str(left), Value::Str(right)) => *left == *right,
+         (Value::Err(left), Value::Err(right)) => left.eq(right),
          (Value::Tuple(left), Value::Tuple(right)) => left.iter().zip(right.iter()).all(|(l, r)| l.eq(r)),
          (Value::List(left), Value::List(right)) => left.borrow().iter().zip(right.borrow().iter()).all(|(l, r)| l.eq(r)),
          _ => false,
@@ -442,6 +452,7 @@ impl Value {
    /// Returns true if both Values are the same memory. Will return false for equal but unique values.
    fn is(self, other: Value) -> bool {
       match (self, other) {
+         (Value::Err(left), Value::Err(right)) => left.is(*right),
          (Value::Str(left), Value::Str(right)) => Rc::ptr_eq(&left, &right),
          (Value::Tuple(left), Value::Tuple(right)) => Rc::ptr_eq(&left, &right),
          (Value::List(left), Value::List(right)) => Rc::ptr_eq(&left, &right),
@@ -569,7 +580,8 @@ impl Value {
    /// Returns the name of the Value's type as a str.
    fn typename(self) -> Value {
       match self {
-         Value::Nil => TYPE_NAME_NONE.with(|v| v.clone()),
+         Value::Nil => TYPE_NAME_NIL.with(|v| v.clone()),
+         Value::Err(_) => TYPE_NAME_ERR.with(|v| v.clone()),
          Value::Bool(_) => TYPE_NAME_BOOL.with(|v| v.clone()),
          Value::Int(_) => TYPE_NAME_INT.with(|v| v.clone()),
          Value::Float(_) => TYPE_NAME_FLOAT.with(|v| v.clone()),
@@ -582,6 +594,13 @@ impl Value {
 
    fn not(self) -> Value {
       Value::Bool(!self.is_truthy())
+   }
+
+   fn err(self) -> Value {
+      match self {
+         Value::Err(val) => *val,
+         _ => Value::Err(Box::from(self)),
+      }
    }
 
    fn bool(self) -> Value {
@@ -714,6 +733,37 @@ impl Value {
          _ => Value::Nil,
       }
    }
+
+   fn from_error(error: impl Error) -> Value {
+      Value::Err(Box::new(Value::Str(error.to_string().into())))
+   }
+
+   fn new_err(string: &str) -> Value {
+      Value::Err(Box::new(Value::Str(format!("{string}").into())))
+   }
+
+   fn read(self) -> Value {
+      match self {
+         Value::Str(str) => match read_to_string(&*str) {
+            Err(err) => Value::from_error(err),
+            Ok(str) => Value::Str(str.into()),
+         },
+         _ => Value::new_err("TypeError"),
+      }
+   }
+
+   fn write(self, other: Value) -> Value {
+      match self {
+         Value::Str(path) => match other {
+            Value::Str(str) => match write(&*path, &*str) {
+               Err(err) => Value::from_error(err),
+               Ok(_) => Value::Bool(true),
+            },
+            _ => Value::new_err("TypeError"),
+         },
+         _ => Value::new_err("TypeError"),
+      }
+   }
 }
 
 fn join_values<'a>(values: impl Iterator<Item = &'a (impl Display + 'a)>, sep: &str) -> Value {
@@ -834,12 +884,14 @@ impl Expr {
             UnaryOperator::BitNot => expr.eval(data, state).bitnot(),
             UnaryOperator::Minus => expr.eval(data, state).minus(),
             UnaryOperator::Type => expr.eval(data, state).typename(),
+            UnaryOperator::Err => expr.eval(data, state).err(),
             UnaryOperator::Bool => expr.eval(data, state).bool(),
             UnaryOperator::Int => expr.eval(data, state).int(),
             UnaryOperator::Float => expr.eval(data, state).float(),
             UnaryOperator::Str => expr.eval(data, state).str(),
             UnaryOperator::Len => expr.eval(data, state).len(),
             UnaryOperator::Print => expr.eval(data, state).print(),
+            UnaryOperator::Read => expr.eval(data, state).read(),
          },
          Expr::BinaryOperation { operator, left, right } => match operator {
             BinaryOperator::Add => left.eval(data, state).add(right.eval(data, state)),
@@ -863,6 +915,7 @@ impl Expr {
             BinaryOperator::Remove => left.eval(data, state).remove(right.eval(data, state)),
             BinaryOperator::Index => left.eval(data, state).index(right.eval(data, state)),
             BinaryOperator::Join => left.eval(data, state).join(right.eval(data, state)),
+            BinaryOperator::Write => left.eval(data, state).write(right.eval(data, state)),
          },
          Expr::TernaryOperation {
             operator,

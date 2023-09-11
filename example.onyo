@@ -1,9 +1,7 @@
-call(a) {
-   push(a, str(len(a)))
-}
-
-main() {
-   a = [1, 2, 3]
-   call(a)
-   print(a)
+main() -> nil {
+   if v: str|err(str) = read("/dev/stdin") {
+      print(v)
+   } elif index(err(v), "(os error 2)") {
+      print("excepted error") 
+   }
 }

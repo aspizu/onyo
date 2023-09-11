@@ -126,12 +126,14 @@ class UnaryOperator(enum):
    BitNot = auto()
    Minus = auto()
    Type = auto()
+   Err = auto()
    Bool = auto()
    Int = auto()
    Float = auto()
    Str = auto()
    Len = auto()
    Print = auto()
+   Read = auto()
 
 
 class BinaryOperator(enum):
@@ -156,6 +158,7 @@ class BinaryOperator(enum):
    Remove = auto()
    Index = auto()
    Join = auto()
+   Write = auto()
 
 
 class TernaryOperator(enum):
@@ -262,12 +265,12 @@ class Expr(internally_tagged_enum):
 # fmt:off
 grammar = r'''
 start: func*
-func: IDENT "(" _identlist ")" block 
+func: IDENT "(" _identlist ")" ["->" type] block 
 block: "{" exec* "}"
 exec: assign | whilebranch | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret
 ret: "return" expr
 execexpr: "eval" expr
-assign: IDENT "=" expr
+assign: IDENT [":" type] "=" expr
 whilebranch: "while" expr block 
 dowhile: "do" block "while" expr
 ifblock: "if" expr block 
@@ -276,6 +279,7 @@ ifelif: "if" expr block ("elif" expr block)+
 ifelifelse: "if" expr block ("elif" expr block)+ "else" block 
 expr: NIL | BOOL | INT | FLOAT |  STRING
     | IDENT -> var
+    | IDENT ":" [type] "=" expr -> assign
     | branch
     | orbranch
     | andbranch
@@ -301,10 +305,10 @@ expr: NIL | BOOL | INT | FLOAT |  STRING
     | getitem
     | call
     | list
+    | tuple
     | dict
-  //  | tuple
     | "(" expr ")"
-tuple: expr "," | expr ("," expr)+ | "(" ")"
+tuple: "{" _exprlist "}"
 list: "[" _exprlist "]"
 dict: "{" (IDENT":" expr)* "}"
 branch: "if" expr "then" expr "else" expr
@@ -334,10 +338,19 @@ getitem: expr "[" expr "]" | expr "." expr
 call: IDENT "(" _exprlist ")"
 _exprlist: [expr ("," expr)*] 
 _identlist: [IDENT ("," IDENT)*] 
+_typelist: [type ("," type)*]
+type: NIL | "bool" | "int" | "float" | "str" | "any" | "never"
+    | "{" _typelist "}" -> typetuplefinite
+    | "[" _typelist "]" -> typelistfinite
+    | "tuple" "(" type ")" -> typetuple
+    | "list" "(" type ")" -> typelist
+    | "err" "(" type ")" -> typeerr
+    | type ("|" type)+ -> typeunion
+    | IDENT -> typevar
 NIL: "nil"
 BOOL: "true" | "false"
 CPP_COMMENT: ";" /[^\n]*/
-C_COMMENT: "<!--" /(.|\n)*?/ "-->"
+C_COMMENT: "/-" /(.|\n)*?/ "-/"
 %import common.ESCAPED_STRING -> STRING
 %import common.CNAME -> IDENT
 %import common.SIGNED_INT -> INT
@@ -370,7 +383,7 @@ class I(lark.visitors.Interpreter[Token, None]):
 
    def func(self, node: Tree):
       name = str(node.children[0])
-      parameters = [str(i) for i in optional_list(node.children[1:-1])]
+      parameters = [str(i) for i in optional_list(node.children[1:-2])]
       body = cast(Tree, node.children[-1])
       v = V(self)
       for i in parameters:
@@ -480,13 +493,11 @@ class V(lark.visitors.Transformer[Token, Block]):
 
    def assign(self, args: list[Any]):
       name = str(args[0])
-      if variable := self.variables.get(name):
-         return Exec.Expr(Expr.SetVar(Reference.Variable(variable), args[1]))
-      else:
+      variable = self.variables.get(name)
+      if variable is None:
+         variable = len(self.variables)
          self.variables[name] = len(self.variables)
-         return Exec.Expr(
-            Expr.SetVar(Reference.Variable(self.variables[name]), args[1])
-         )
+      return Expr.SetVar(Reference.Variable(variable), args[2])
 
    branch = ternary_operation(TernaryOperator.Branch)
    orbranch = binary_operation(BinaryOperator.Or)
@@ -518,18 +529,19 @@ class V(lark.visitors.Transformer[Token, Block]):
    def geq(self, args: list[Any]):
       return Expr.UnaryOperation(UnaryOperator.Not, self.lt(args))
 
-   def func(self, args: list[Any]):
-      name = str(args[0])
-      params = [str(i) for i in optional_list(args[1:-1])]
-      return Function(name, params, [], args[-1])
-
    def call(self, args: list[Any]):
       name = str(args[0])
       params = optional_list(args[1:])
       if name == "print":
          return Expr.UnaryOperation(UnaryOperator.Print, args[1])
+      elif name == "read":
+         return Expr.UnaryOperation(UnaryOperator.Read, args[1])
+      elif name == "write":
+         return Expr.BinaryOperation(BinaryOperator.Write, args[1], args[2])
       elif name == "join":
          return Expr.BinaryOperation(BinaryOperator.Join, args[1], args[2])
+      elif name == "err":
+         return Expr.UnaryOperation(UnaryOperator.Err, args[1])
       elif name == "bool":
          return Expr.UnaryOperation(UnaryOperator.Bool, args[1])
       elif name == "int":

@@ -1,31 +1,36 @@
 {
    "functions": [
       {
-         "name": "call",
-         "parameters": [
-            "a"
-         ],
+         "name": "main",
+         "parameters": [],
          "variables": [
-            "a"
+            "v"
          ],
          "body": [
             {
-               "type": "Expr",
-               "expr": {
-                  "type": "BinaryOperation",
-                  "operator": "Push",
-                  "left": {
-                     "type": "Reference",
-                     "reference": {
-                        "Variable": 0
-                     }
+               "type": "Branch",
+               "condition": {
+                  "type": "SetVar",
+                  "variable": {
+                     "Variable": 0
                   },
-                  "right": {
+                  "expr": {
                      "type": "UnaryOperation",
-                     "operator": "Str",
+                     "operator": "Read",
+                     "expr": {
+                        "type": "Literal",
+                        "literal": {
+                           "Str": "/dev/stdin"
+                        }
+                     }
+                  }
+               },
+               "then": [
+                  {
+                     "type": "Expr",
                      "expr": {
                         "type": "UnaryOperation",
-                        "operator": "Len",
+                        "operator": "Print",
                         "expr": {
                            "type": "Reference",
                            "reference": {
@@ -34,79 +39,48 @@
                         }
                      }
                   }
-               }
-            }
-         ]
-      },
-      {
-         "name": "main",
-         "parameters": [],
-         "variables": [
-            "a"
-         ],
-         "body": [
-            {
-               "type": "Expr",
-               "expr": {
-                  "type": "SetVar",
-                  "variable": {
-                     "Variable": 0
-                  },
-                  "expr": {
-                     "type": "NaryOperation",
-                     "operator": "List",
-                     "parameters": [
-                        {
-                           "type": "Literal",
-                           "literal": {
-                              "Int": 1
+               ],
+               "otherwise": [
+                  {
+                     "type": "Branch",
+                     "condition": {
+                        "type": "BinaryOperation",
+                        "operator": "Index",
+                        "left": {
+                           "type": "UnaryOperation",
+                           "operator": "Err",
+                           "expr": {
+                              "type": "Reference",
+                              "reference": {
+                                 "Variable": 0
+                              }
                            }
                         },
-                        {
+                        "right": {
                            "type": "Literal",
                            "literal": {
-                              "Int": 2
+                              "Str": "(os error 2)"
                            }
-                        },
+                        }
+                     },
+                     "then": [
                         {
-                           "type": "Literal",
-                           "literal": {
-                              "Int": 3
+                           "type": "Expr",
+                           "expr": {
+                              "type": "UnaryOperation",
+                              "operator": "Print",
+                              "expr": {
+                                 "type": "Literal",
+                                 "literal": {
+                                    "Str": "excepted error"
+                                 }
+                              }
                            }
                         }
-                     ]
+                     ],
+                     "otherwise": []
                   }
-               }
-            },
-            {
-               "type": "Expr",
-               "expr": {
-                  "type": "Call",
-                  "variable": {
-                     "Function": 0
-                  },
-                  "parameters": [
-                     {
-                        "type": "Reference",
-                        "reference": {
-                           "Variable": 0
-                        }
-                     }
-                  ]
-               }
-            },
-            {
-               "type": "Expr",
-               "expr": {
-                  "type": "UnaryOperation",
-                  "operator": "Print",
-                  "expr": {
-                     "type": "Reference",
-                     "reference": {
-                        "Variable": 0
-                     }
-                  }
-               }
+               ]
             }
          ]
       }
