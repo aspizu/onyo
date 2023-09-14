@@ -1,1 +1,7 @@
 /target
+__pycache__/
+*.egg-info/
+.cache/
+vgcore.*
+project.json
+examples/tests/playground.onyo

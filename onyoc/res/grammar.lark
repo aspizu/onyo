@@ -1,0 +1,95 @@
+start: func*
+func: IDENT "(" _identlist ")" ["->" type] block 
+block: "{" exec* "}"
+exec: assign | whilebranch | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret
+ret: "return" expr
+execexpr: "eval" expr
+assign: IDENT [":" type] "=" expr
+whilebranch: "while" expr block 
+dowhile: "do" block "while" expr
+ifblock: "if" expr block 
+ifelse: "if" expr block "else" block 
+ifelif: "if" expr block ("elif" expr block)+ 
+ifelifelse: "if" expr block ("elif" expr block)+ "else" block 
+expr: NIL | BOOL | INT | FLOAT |  STRING
+    | IDENT -> var
+    | IDENT ":" [type] "=" expr -> assign
+    | branch
+    | orbranch
+    | andbranch
+    | neq
+    | eq | identity
+    | lt
+    | gt
+    | leq
+    | geq
+    | leftshift
+    | rightshift
+    | bitor
+    | bitxor
+    | bitand
+    | add
+    | sub
+    | mul
+    | div
+    | modulo
+    | bitnot
+    | knot
+    | minus
+    | getitem
+    | call
+    | list
+    | tuple
+    | dict
+    | "(" expr ")"
+tuple: "{" _exprlist "}"
+list: "[" _exprlist "]"
+dict: "{" (IDENT":" expr)* "}"
+branch: "if" expr "then" expr "else" expr
+orbranch: expr "or" expr
+andbranch: expr "and" expr 
+neq: expr "!=" expr
+eq: expr "==" expr
+identity: expr "is" expr
+lt: expr "<" expr
+gt: expr ">" expr
+leq: expr "<=" expr
+geq: expr ">=" expr
+leftshift: expr "<<" expr
+rightshift: expr ">>" expr
+bitor: expr "|" expr
+bitxor: expr "^" expr
+bitand: expr "&" expr
+add: expr "+" expr
+sub: expr "-" expr
+mul: expr "*" expr
+div: expr "/" expr
+modulo: expr "%" expr
+bitnot: "~" expr
+knot: "not" expr
+minus: "-" expr
+getitem: expr "[" expr "]" | expr "." expr
+call: IDENT "(" _exprlist ")"
+_exprlist: [expr ("," expr)*] 
+_identlist: [IDENT ("," IDENT)*] 
+_typelist: [type ("," type)*]
+type: NIL | "bool" | "int" | "float" | "str" | "any" | "never"
+    | "{" _typelist "}" -> typetuplefinite
+    | "[" _typelist "]" -> typelistfinite
+    | "tuple" "(" type ")" -> typetuple
+    | "list" "(" type ")" -> typelist
+    | "err" "(" type ")" -> typeerr
+    | type ("|" type)+ -> typeunion
+    | IDENT -> typevar
+NIL: "nil"
+BOOL: "true" | "false"
+CPP_COMMENT: ";" /[^\n]*/
+C_COMMENT: "/-" /(.|\n)*?/ "-/"
+%import common.ESCAPED_STRING -> STRING
+%import common.CNAME -> IDENT
+%import common.SIGNED_INT -> INT
+%import common.SIGNED_FLOAT -> FLOAT
+%import common.WS
+%ignore WS
+%ignore C_COMMENT
+%ignore CPP_COMMENT

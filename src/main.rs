@@ -1,9 +1,11 @@
 use serde::Deserialize;
+use std::env;
 use std::error::Error;
 use std::fmt::{Display, Write};
 use std::fs::File;
 use std::fs::{read_to_string, write};
 use std::io::BufReader;
+use std::path::Path;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 type Block = Vec<Exec>;
@@ -311,9 +313,9 @@ impl Value {
          (Value::Float(left), Value::Float(right)) => Value::Float(left + right),
          (Value::Str(left), Value::Str(right)) => Value::Str(Rc::from(format!("{left}{right}"))),
          (Value::Tuple(left), Value::Tuple(right)) => Value::Tuple(Rc::new(left.iter().chain(right.iter()).cloned().collect())),
-         (Value::List(left), Value::List(right)) => Value::List(Rc::new(RefCell::new({
-            left.borrow().iter().chain(right.borrow().iter()).cloned().collect()
-         }))),
+         (Value::List(left), Value::List(right)) => Value::List(Rc::new(RefCell::new(
+            left.borrow().iter().chain(right.borrow().iter()).cloned().collect(),
+         ))),
          (Value::Dict(left), Value::Dict(right)) => Value::Dict(Rc::new(RefCell::new(
             left
                .borrow()
@@ -987,6 +989,8 @@ fn call_by_name(data: &Data, state: &mut State, function_name: &str, parameters:
 }
 
 fn main() {
+   let mut args = env::args();
+   
    let file = File::open("project.json").unwrap();
    let reader = BufReader::new(file);
    let data: Data = serde_json::from_reader(reader).unwrap();
