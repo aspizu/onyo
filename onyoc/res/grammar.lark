@@ -1,7 +1,8 @@
-start: func*
-func: IDENT "(" _identlist ")" ["->" type] block 
+start: (func|structdef)*
+func: IDENT "(" _identlist ")" ["->" type] block
+structdef: IDENT "{" (IDENT [":" type] ","?)* "}"
 block: "{" exec* "}"
-exec: assign | whilebranch | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret
+exec: assign | whilebranch | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret | setfield
 ret: "return" expr
 execexpr: "eval" expr
 assign: IDENT [":" type] "=" expr
@@ -14,6 +15,7 @@ ifelifelse: "if" expr block ("elif" expr block)+ "else" block
 expr: NIL | BOOL | INT | FLOAT |  STRING
     | IDENT -> var
     | IDENT ":" [type] "=" expr -> assign
+    | expr "." IDENT ":=" expr -> setfield
     | branch
     | orbranch
     | andbranch
@@ -37,14 +39,15 @@ expr: NIL | BOOL | INT | FLOAT |  STRING
     | knot
     | minus
     | getitem
+    | getfield
     | call
     | list
     | tuple
-    | dict
+    | struct
     | "(" expr ")"
 tuple: "{" _exprlist "}"
 list: "[" _exprlist "]"
-dict: "{" (IDENT":" expr)* "}"
+struct: IDENT "{" (IDENT "=" expr ","?)* "}"
 branch: "if" expr "then" expr "else" expr
 orbranch: expr "or" expr
 andbranch: expr "and" expr 
@@ -68,7 +71,9 @@ modulo: expr "%" expr
 bitnot: "~" expr
 knot: "not" expr
 minus: "-" expr
-getitem: expr "[" expr "]" | expr "." expr
+getitem: expr "[" expr "]"
+setfield: expr "." IDENT "=" expr
+getfield: expr "." IDENT
 call: IDENT "(" _exprlist ")"
 _exprlist: [expr ("," expr)*] 
 _identlist: [IDENT ("," IDENT)*] 

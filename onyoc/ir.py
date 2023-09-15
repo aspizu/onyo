@@ -16,16 +16,24 @@ Block = list[ExecT]
 
 
 @dataclass
-class Data(Struct):
+class Data(Struct_):
    functions: list["Function"]
+   prototypes: list["Prototype"]
+   ident_map: dict[int, str]
 
 
 @dataclass
-class Function(Struct):
+class Function(Struct_):
    name: str
    parameters: list[str]
    variables: list[str]
    body: Block
+
+
+@dataclass
+class Prototype(Struct_):
+   name: str
+   field_map: dict[int, int]
 
 
 class Literal(ExternallyTaggedEnum):
@@ -120,72 +128,84 @@ class ExprT:
 
 class Exec(InternallyTaggedEnum):
    @dataclass
-   class While(ExecT, Struct):
+   class While(ExecT, Struct_):
       condition: ExprT
       block: Block
 
    @dataclass
-   class DoWhile(ExecT, Struct):
+   class DoWhile(ExecT, Struct_):
       block: Block
       condition: ExprT
 
    @dataclass
-   class Branch(ExecT, Struct):
+   class Branch(ExecT, Struct_):
       condition: ExprT
       then: Block
       otherwise: Block
 
    @dataclass
-   class Return(ExecT, Struct):
+   class Return(ExecT, Struct_):
       expr: ExprT
 
    @dataclass
-   class Expr(ExecT, Struct):
+   class Expr(ExecT, Struct_):
       expr: ExprT
 
 
 class Expr(InternallyTaggedEnum):
    @dataclass
-   class Literal(ExprT, Struct):
+   class Literal(ExprT, Struct_):
       literal: LiteralT
 
    @dataclass
-   class Reference(ExprT, Struct):
+   class Reference(ExprT, Struct_):
       reference: ReferenceT
 
    @dataclass
-   class UnaryOperation(ExprT, Struct):
+   class UnaryOperation(ExprT, Struct_):
       operator: UnaryOperator
       expr: ExprT
 
    @dataclass
-   class BinaryOperation(ExprT, Struct):
+   class BinaryOperation(ExprT, Struct_):
       operator: BinaryOperator
       left: ExprT
       right: ExprT
 
    @dataclass
-   class TernaryOperation(ExprT, Struct):
+   class TernaryOperation(ExprT, Struct_):
       operator: TernaryOperator
       first: ExprT
       second: ExprT
       third: ExprT
 
    @dataclass
-   class NaryOperation(ExprT, Struct):
+   class NaryOperation(ExprT, Struct_):
       operator: NaryOperator
       parameters: list[ExprT]
 
    @dataclass
-   class Call(ExprT, Struct):
+   class Call(ExprT, Struct_):
       variable: ReferenceT
       parameters: list[ExprT]
 
    @dataclass
-   class Dict(ExprT, Struct):
-      pairs: list[tuple[ExprT, ExprT]]
+   class Struct(ExprT, Struct_):
+      prototype: int
+      values: list[ExprT]
 
    @dataclass
-   class SetVar(ExprT, Struct):
+   class SetVar(ExprT, Struct_):
       variable: ReferenceT
       expr: ExprT
+
+   @dataclass
+   class SetField(ExprT, Struct_):
+      instance: ExprT
+      field_id: int
+      value: ExprT
+
+   @dataclass
+   class GetField(ExprT, Struct_):
+      instance: ExprT
+      field_id: int

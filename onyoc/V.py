@@ -6,7 +6,7 @@ from lark.visitors import Transformer
 
 from . import *
 from .error import ErrorStorage, Range
-from .types import *
+from .ir import *
 
 if TYPE_CHECKING:
    from .I import I
@@ -167,6 +167,28 @@ class V(Transformer[Token, Block], ErrorStorage):
    def tuple(self, args: list[Any]):
       args = optional_list(args)
       return Expr.NaryOperation(NaryOperator.Tuple, args)
+
+   def struct(self, args: list[Any]):
+      prototype_id, prototype = self.i.structs[str(args[0])]
+      it = iter(args[1:])
+      values = {}
+      for field_name, field_expr in zip(it, it):
+         field_qualname = str(field_name)
+         values[prototype.field_map[self.i.ident_map[field_qualname]]] = field_expr
+      return Expr.Struct(prototype_id, [values[field] for field in prototype.field_map.values()])
+
+   def setfield(self, args: list[Any]):
+      instance = args[0]
+      field_name = args[1]
+      value = args[2]
+      field_qualname = str(field_name)
+      return Expr.SetField(instance, self.i.ident_map[field_qualname], value)
+
+   def getfield(self, args: list[Any]):
+      instance = args[0]
+      field_name = args[1]
+      field_qualname = str(field_name)
+      return Expr.GetField(instance, self.i.ident_map[field_qualname])
 
    def list(self, args: list[Any]):
       args = optional_list(args)

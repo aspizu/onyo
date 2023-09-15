@@ -1,3 +1,4 @@
+unstable_features = true
 condense_wildcard_suffixes = true
 edition = "2021"
 max_width = 128
@@ -18,3 +19,7 @@ reorder_impl_items = true
 reorder_imports = true
 reorder_modules = true
 wrap_comments = true
+use_small_heuristics = "Max"
+trailing_comma = "Never"
+#brace_style = "AlwaysNextLine"
+#control_brace_style = "AlwaysNextLine"

@@ -25,7 +25,7 @@ def to_json(o: object) -> JSON:
    raise ValueError("Does not implement to_json", o)
 
 
-class Struct(ToJson):
+class Struct_(ToJson):
    def to_json(self) -> JSON:
       return to_json(self.__dict__)
 
@@ -57,7 +57,7 @@ class InternallyTaggedEnum:
 class ExternallyTaggedEnum:
    def __init_subclass__(cls) -> None:
       for subcls in cls.__dict__.values():
-         if isinstance(subcls, type) and issubclass(subcls, ToJson):
+         if isinstance(subcls, type) and issubclass(subcls, Struct_):
 
             def f(subcls: type[ToJson]):
                super_to_json = subcls.to_json

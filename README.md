@@ -88,11 +88,11 @@ for hash maps were helpful.
 - [Data Types](#data-types)
   - [Tuples](#tuples)
   - [Lists](#lists)
-  - [Tables](#tables)
 - [Language Features](#language-features)
   - [Comments](#comments)
   - [Functions](#functions)
     - [Main Function](#main-function)
+  - [Structs](#structs)
   - [Variables](#variables)
   - [Conditions](#conditions)
   - [Loops](#loops)
@@ -140,28 +140,6 @@ i = 0
 while i < len(a) {
     print(a[i])
     i += 1
-}
-```
-
-## Dicts
-
-Dict keys can only be strings.
-
-```lua
-person(name, age) {
-    return {
-        name: name
-        age: age
-    }
-}
-
-main() {
-    bdfl = person("aspizu", 18)
-    print(bdfl)
-    bdfl.age = 10
-    bdfl["age"] = 20
-    print(bdfl)
-    print(bdfl["name"])
 }
 ```
 
@@ -215,6 +193,35 @@ Must be present in every program. Takes no arguments.
 main() {
   ; ...
 }
+```
+
+## Structs
+
+Struct fields are static, which means that you cannot add a new field to a struct instance at run-time like you could do in
+Javascript.
+
+```lua
+Name {
+  field1
+  field2
+}
+
+Person { name, age }
+```
+
+```lua
+bdfl = Person { name = "aspizu", 18 }
+friend =
+  Person {
+    name = "friend"
+    age = 17
+  }
+```
+
+The commas in struct definitions and literals are optional.
+
+```lua
+print(bdfl.name)
 ```
 
 ## Variables
