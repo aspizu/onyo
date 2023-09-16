@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "extensionHost",
+      "request": "launch",
+      "name": "Launch Client",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceRoot}"
+        // "--disable-extensions"
+      ],
+      "preLaunchTask": {
+        "type": "npm",
+        "script": "watch"
+      },
+      "env": {
+        "VSCODE_DEBUG_MODE": "true"
+      }
+    }
+  ]
+}

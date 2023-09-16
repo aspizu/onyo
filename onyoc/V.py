@@ -43,6 +43,7 @@ class V(Transformer[Token, Block], ErrorStorage):
       "read": unary_operation(UnaryOperator.Read),
       "write": binary_operation(BinaryOperator.Write),
       "join": binary_operation(BinaryOperator.Join),
+      "type": unary_operation(UnaryOperator.Type),
       "err": unary_operation(UnaryOperator.Err),
       "bool": unary_operation(UnaryOperator.Bool),
       "int": unary_operation(UnaryOperator.Int),
@@ -106,6 +107,15 @@ class V(Transformer[Token, Block], ErrorStorage):
          return Expr.Reference(Reference.Function(function[0]))
       self.add_error(f"Undefined variable `{name}`", range=Range.from_token(name), typo=typo(str(name), self.variables.keys()))
       return False
+
+   def forloop(self, args: tuple[ReferenceT, ExprT, Block]):
+      name = str(args[0])
+      if (variable_id := self.variables.get(name)) is not None:
+         variable = Reference.Variable(variable_id)
+      else:
+         variable = Reference.Variable(len(self.variables))
+         self.variables[name] = variable._
+      return Exec.ForLoop(variable, args[1], args[2])
 
    def execexpr(self, args: tuple[ExprT]):
       return Exec.Expr(args[0])
@@ -172,10 +182,6 @@ class V(Transformer[Token, Block], ErrorStorage):
       callable = args[0]
       params = optional_list(args[1:])
       return Expr.Call(callable, params)
-
-   def tuple(self, args: list[Any]):
-      args = optional_list(args)
-      return Expr.NaryOperation(NaryOperator.Tuple, args)
 
    def struct(self, args: list[Any]):
       prototype_id, prototype = self.i.structs[str(args[0])]

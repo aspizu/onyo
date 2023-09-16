@@ -1,0 +1,24 @@
+    {
+      "name": "comment.block",
+      "begin": "/\\*",
+      "end": "\\*/"
+    },
+    {
+      "name": "constant",
+      "match": "[_a-zA-Z][_a-zA-Z0-9]*!"
+    },
+        {
+      "name": "variable.parameter",
+      "match": "\\$[_a-zA-Z][_a-zA-Z0-9]*"
+    },
+{
+      "name": "keyword.control",
+      "begin": "\\bdef\\b[\\s\\n]*",
+      "end": "[\\s\\n{]",
+      "patterns": [
+        {
+          "name": "entity.name.function",
+          "match": "[_a-zA-Z][_a-zA-Z0-9]*"
+        }
+      ]
+    },

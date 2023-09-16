@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "onyo",
+  "patterns": [
+    {
+      "name": "comment.line",
+      "begin": ";",
+      "end": "$"
+    },
+    {
+      "name": "punctuation",
+      "match": "[,.:]"
+    },
+    {
+      "name": "variable.parameter",
+      "match": "\\.[_a-zA-Z][_a-zA-Z0-9]*",
+      "patterns": [
+        {
+          "name": "punctuation",
+          "match": "\\."
+        }
+      ]
+    },
+    {
+      "name": "keyword.operator",
+      "match": "([=+\\-*/%&<>~|]|\\b(not|and|or|is)\\b)"
+    },
+    {
+      "name": "entity.name.function",
+      "match": "[_a-zA-Z][_a-zA-Z0-9]*[\\s\\n]*\\("
+    },
+    {
+      "name": "keyword.control.onyo",
+      "match": "\\b(do|while|for|in|if|then|elif|else|return|eval)\\b"
+    },
+    {
+      "name": "entity.name.class",
+      "match": "[_a-zA-Z][_a-zA-Z0-9]*[\\s\\n]*\\{"
+    },
+    {
+      "name": "constant.numeric",
+      "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+    },
+    {
+      "name": "string.quoted.double.onyo",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.onyo",
+          "match": "\\\\."
+        }
+      ]
+    }
+  ],
+  "scopeName": "text.onyo"
+}

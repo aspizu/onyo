@@ -10,7 +10,13 @@ pub struct Data {
    pub functions: Vec<Function>,
    pub prototypes: Vec<Prototype>,
    /// ident id -> ident name
-   pub ident_map: BTreeMap<usize, String>
+   pub ident_map: BTreeMap<usize, String>,
+   pub reserved_idents: ReservedIdents
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReservedIdents {
+   pub next: usize
 }
 
 #[derive(Debug, Deserialize)]
@@ -111,6 +117,11 @@ pub enum Reference {
 pub enum Exec {
    While {
       condition: Expr,
+      block: Block
+   },
+   ForLoop {
+      variable: Reference,
+      iterator: Expr,
       block: Block
    },
    DoWhile {

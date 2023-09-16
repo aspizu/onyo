@@ -20,6 +20,16 @@ class Data(Struct_):
    functions: list["Function"]
    prototypes: list["Prototype"]
    ident_map: dict[int, str]
+   reserved_idents: "ReservedIdents"
+
+
+@dataclass
+class ReservedIdents(Struct_):
+   next: int
+
+   @staticmethod
+   def from_ident_map(ident_map: dict[str, int]):
+      return ReservedIdents(next=ident_map["next"])
 
 
 @dataclass
@@ -131,6 +141,12 @@ class Exec(InternallyTaggedEnum):
    @dataclass
    class While(ExecT, Struct_):
       condition: ExprT
+      block: Block
+
+   @dataclass
+   class ForLoop(ExecT, Struct_):
+      variable: ReferenceT
+      iterator: ExprT
       block: Block
 
    @dataclass

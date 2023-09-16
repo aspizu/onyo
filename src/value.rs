@@ -5,7 +5,7 @@ use crate::{ir::Data, misc::*};
 #[derive(Debug, Clone)]
 pub struct Struct {
    pub prototype: usize,
-   pub values: Vec<Value>,
+   pub values: Vec<Value>
 }
 
 /// Data-types
@@ -20,7 +20,7 @@ pub enum Value {
    List(Rc<RefCell<Vec<Value>>>),
    Struct(Rc<RefCell<Struct>>),
    Function(usize),
-   Method { function_id: usize, instance: Rc<RefCell<Struct>> },
+   Method { function_id: usize, instance: Rc<RefCell<Struct>> }
 }
 
 impl From<bool> for Value {
@@ -96,9 +96,7 @@ impl Struct {
 
 impl Value {
    pub fn fmt_join<T, F>(data: &Data, into: &mut String, values: impl Iterator<Item = T>, sep: &str, fmt: F)
-   where
-      F: Fn(T, &Data, &mut String),
-   {
+   where F: Fn(T, &Data, &mut String) {
       let mut it = values.peekable();
       while let Some(item) = it.next() {
          fmt(item, data, into);
@@ -137,7 +135,7 @@ impl Value {
          },
          &Value::Method { function_id, .. } => {
             write!(into, "{}(bound)", data.functions[function_id].name).unwrap();
-         },
+         }
       }
    }
 
@@ -145,7 +143,7 @@ impl Value {
    pub fn is_truthy(&self) -> bool {
       match self {
          Value::Nil | Value::Err(_) | Value::Bool(false) => false,
-         _ => true,
+         _ => true
       }
    }
 
@@ -168,10 +166,9 @@ impl Value {
          (Value::Float(left), Value::Int(right)) => (left + right as f64).into(),
          (Value::Float(left), Value::Float(right)) => (left + right).into(),
          (Value::Str(left), Value::Str(right)) => format!("{left}{right}").into(),
-         (Value::List(left), Value::List(right)) => {
-            Value::List(RefCell::new(left.borrow().iter().chain(right.borrow().iter()).cloned().collect()).into())
-         },
-         _ => Value::Nil,
+         (Value::List(left), Value::List(right)) =>
+            Value::List(RefCell::new(left.borrow().iter().chain(right.borrow().iter()).cloned().collect()).into()),
+         _ => Value::Nil
       }
    }
 
@@ -186,7 +183,7 @@ impl Value {
          (Value::Int(left), Value::Float(right)) => (left as f64 - right).into(),
          (Value::Float(left), Value::Int(right)) => (left - right as f64).into(),
          (Value::Float(left), Value::Float(right)) => (left - right).into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -195,7 +192,7 @@ impl Value {
          Value::Bool(value) => (-(value as i64)).into(),
          Value::Int(value) => (-value).into(),
          Value::Float(value) => (-value).into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -210,23 +207,21 @@ impl Value {
          (Value::Int(left), Value::Float(right)) => (left as f64 * right).into(),
          (Value::Float(left), Value::Int(right)) => (left * right as f64).into(),
          (Value::Float(left), Value::Float(right)) => (left * right).into(),
-         (Value::Str(str), Value::Int(factor)) => {
+         (Value::Str(str), Value::Int(factor)) =>
             if 0 <= factor {
                str.repeat(factor as usize).into()
             } else {
                "".into()
-            }
-         },
-         (Value::List(list), Value::Int(factor)) => {
+            },
+         (Value::List(list), Value::Int(factor)) =>
             if 0 <= factor {
                let list = list.borrow();
                let list = std::iter::repeat_with(|| list.iter()).take(factor as usize).flatten().cloned().collect();
                Value::List(RefCell::new(list).into())
             } else {
                Value::List(Rc::new(vec![].into()))
-            }
-         },
-         _ => Value::Nil,
+            },
+         _ => Value::Nil
       }
    }
 
@@ -242,7 +237,7 @@ impl Value {
          (Value::Float(left), Value::Int(right)) => (left / right as f64).into(),
          (Value::Float(left), Value::Float(right)) => (left / right).into(),
          (Value::Str(..), Value::Str(..)) => unimplemented!(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -258,7 +253,7 @@ impl Value {
          (Value::Float(left), Value::Int(right)) => (fmodulo(left, right as f64)).into(),
          (Value::Float(left), Value::Float(right)) => (fmodulo(left, right)).into(),
          (Value::Str(..), Value::Str(..)) => unimplemented!(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -278,7 +273,7 @@ impl Value {
          (Value::List(left), Value::List(right)) => left.borrow().iter().zip(right.borrow().iter()).all(|(l, r)| l.eq(r)),
          (Value::Struct(left), Value::Struct(right)) => left.borrow().eq(&right.borrow()),
          (Value::Function(left), Value::Function(right)) => left == right,
-         _ => false,
+         _ => false
       }
    }
 
@@ -291,7 +286,7 @@ impl Value {
          (Value::List(left), Value::List(right)) => Rc::ptr_eq(left, right),
          (Value::Struct(left), Value::Struct(right)) => Rc::ptr_eq(left, right),
          (Value::Function(left), Value::Function(right)) => left == right, // 'is' and '==' on functions are the same thing.
-         _ => false,
+         _ => false
       }
    }
 
@@ -301,21 +296,21 @@ impl Value {
             Value::Bool(right) => (left < right).into(),
             Value::Int(right) => ((left as i64) < right).into(),
             Value::Float(right) => ((f64::from(left)) < right).into(),
-            _ => Value::Nil,
+            _ => Value::Nil
          },
          Value::Int(left) => match other {
             Value::Bool(right) => (left < right as i64).into(),
             Value::Int(right) => (left < right).into(),
             Value::Float(right) => ((left as f64) < right).into(),
-            _ => Value::Nil,
+            _ => Value::Nil
          },
          Value::Float(left) => match other {
             Value::Bool(right) => (left < right as i64 as f64).into(),
             Value::Int(right) => (left < right as f64).into(),
             Value::Float(right) => (left < right).into(),
-            _ => Value::Nil,
+            _ => Value::Nil
          },
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -325,73 +320,72 @@ impl Value {
             Value::Bool(right) => (left <= right).into(),
             Value::Int(right) => ((left as i64) <= right).into(),
             Value::Float(right) => ((f64::from(left)) <= right).into(),
-            _ => Value::Nil,
+            _ => Value::Nil
          },
          Value::Int(left) => match other {
             Value::Bool(right) => (left <= right as i64).into(),
             Value::Int(right) => (left <= right).into(),
             Value::Float(right) => ((left as f64) <= right).into(),
-            _ => Value::Nil,
+            _ => Value::Nil
          },
          Value::Float(left) => match other {
             Value::Bool(right) => (left <= f64::from(right)).into(),
             Value::Int(right) => (left <= right as f64).into(),
             Value::Float(right) => (left <= right).into(),
-            _ => Value::Nil,
+            _ => Value::Nil
          },
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
    pub fn bitnot(self) -> Value {
       match self {
          Value::Int(int) => (!int).into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
    pub fn bitand(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => (left & right).into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
    pub fn bitor(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => (left | right).into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
    pub fn bitxor(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => (left ^ right).into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
    pub fn leftshift(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => (left << right).into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
    pub fn rightshift(self, other: Value) -> Value {
       match (self, other) {
          (Value::Int(left), Value::Int(right)) => (left >> right).into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
    pub fn getitem(self, other: Value) -> Value {
       match (self, other) {
-         (Value::Str(str), Value::Int(index)) => {
+         (Value::Str(str), Value::Int(index)) =>
             (if index < 0 { str.chars().nth_back((1 - index) as usize) } else { str.chars().nth(index as usize) })
                .map(|v| v.to_string().into())
-               .unwrap_or(Value::Nil)
-         },
+               .unwrap_or(Value::Nil),
          (Value::List(list), Value::Int(mut index)) => {
             let list = list.borrow();
             if index < 0 {
@@ -399,7 +393,7 @@ impl Value {
             }
             list.get(index as usize).cloned().unwrap_or(Value::Nil)
          },
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -418,7 +412,7 @@ impl Value {
             data.prototypes[instance.prototype].name.clone().into()
          }, // TODO: Cache this
          Value::Function(..) => TYPE_NAME_FUNCTION_VALUE.with(|v| v.clone()),
-         Value::Method { .. } => TYPE_NAME_FUNCTION_VALUE.with(|v| v.clone()),
+         Value::Method { .. } => TYPE_NAME_FUNCTION_VALUE.with(|v| v.clone())
       }
    }
 
@@ -429,7 +423,7 @@ impl Value {
    pub fn err(self) -> Value {
       match self {
          Value::Err(val) => *val,
-         _ => Value::Err(self.into()),
+         _ => Value::Err(self.into())
       }
    }
 
@@ -443,7 +437,7 @@ impl Value {
          Value::Int(..) => self,
          Value::Float(float) => (float as i64).into(),
          Value::Str(..) => unimplemented!(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -453,7 +447,7 @@ impl Value {
          Value::Int(int) => (int as f64).into(),
          Value::Float(..) => self,
          Value::Str(..) => unimplemented!(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -467,10 +461,10 @@ impl Value {
       match self {
          Value::Str(str) => match other {
             Value::Str(substr) => str.find(&*substr).map(usize::into).unwrap_or(Value::Nil),
-            _ => Value::Nil,
+            _ => Value::Nil
          },
          Value::List(list) => list.borrow().iter().position(|v| v.eq(&other)).map(usize::into).unwrap_or(Value::Nil),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -478,7 +472,7 @@ impl Value {
       match self {
          Value::Str(str) => str.chars().count().into(),
          Value::List(list) => list.borrow().len().into(),
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -496,16 +490,16 @@ impl Value {
                   Value::Nil
                }
             },
-            _ => Value::Nil,
+            _ => Value::Nil
          },
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
    pub fn push(self, other: Value) -> Value {
       match self {
          Value::List(list) => list.borrow_mut().push(other),
-         _ => {},
+         _ => {}
       }
       Value::Nil
    }
@@ -522,11 +516,28 @@ impl Value {
                   list[index as usize] = item;
                }
             },
-            _ => {},
+            _ => {}
          },
-         _ => {},
+         _ => {}
       }
       Value::Nil
+   }
+
+   pub fn get_field(&self, data: &Data, field_id: usize) -> Value {
+      match self {
+         Value::Struct(instance_cell) => {
+            let instance = instance_cell.borrow();
+            let prototype = &data.prototypes[instance.prototype];
+            if let Some(&id) = prototype.field_map.get(&field_id) {
+               instance.values[id].clone()
+            } else if let Some(&id) = prototype.method_map.get(&field_id) {
+               Value::Method { function_id: id, instance: instance_cell.clone() }
+            } else {
+               Value::new_err("FieldDoesNotExist")
+            }
+         },
+         _ => Value::Nil
+      }
    }
 
    pub fn join(&self, data: &Data, other: Value) -> Value {
@@ -538,7 +549,7 @@ impl Value {
             s.into()
          },
 
-         _ => Value::Nil,
+         _ => Value::Nil
       }
    }
 
@@ -554,9 +565,9 @@ impl Value {
       match self {
          Value::Str(str) => match fs::read_to_string(&*str) {
             Err(err) => Value::from_error(err),
-            Ok(str) => str.into(),
+            Ok(str) => str.into()
          },
-         _ => Value::new_err("TypeError"),
+         _ => Value::new_err("TypeError")
       }
    }
 
@@ -565,11 +576,11 @@ impl Value {
          Value::Str(path) => match other {
             Value::Str(str) => match fs::write(&*path, &*str) {
                Err(err) => Value::from_error(err),
-               Ok(_) => true.into(),
+               Ok(_) => true.into()
             },
-            _ => Value::new_err("TypeError"),
+            _ => Value::new_err("TypeError")
          },
-         _ => Value::new_err("TypeError"),
+         _ => Value::new_err("TypeError")
       }
    }
 }

@@ -55,6 +55,7 @@ class I(Interpreter[Token, None], ErrorStorage):
          [i[1] for i in self.functions.values()],
          [i[1] for i in self.structs.values()],
          {v: k for k, v in self.ident_map.items()},
+         ReservedIdents.from_ident_map(self.ident_map),
       )
       json.dump(to_json(data), output_file, indent=4)
 

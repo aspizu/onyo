@@ -7,7 +7,7 @@ use crate::{ir::*, value::*};
 pub struct State {
    /// Index to Data.functions
    variables: Vec<Value>,
-   variables_begin: usize,
+   variables_begin: usize
 }
 
 impl State {
@@ -61,13 +61,36 @@ impl Exec {
       None
    }
 
+   fn for_loop(data: &Data, state: &mut State, variable: &Reference, iterator: &Expr, block: &Block) -> Option<Value> {
+      let iterator = iterator.eval(data, state);
+      let Value::Method { function_id: next_method, .. } = iterator.get_field(data, data.reserved_idents.next) else {
+         return None;
+      };
+      loop {
+         let next = call(data, state, next_method, &vec![], Some(iterator.clone())).unwrap_or(Value::Nil);
+         if let Value::Err(err) = &next {
+            if let Value::Str(str) = &**err {
+               if &**str == "StopIteration" {
+                  break;
+               }
+            }
+         }
+         Expr::set_variable(state, variable, &next);
+         if let Some(v) = Exec::exec_all(data, state, block) {
+            return Some(v);
+         }
+      }
+      None
+   }
+
    fn exec(&self, data: &Data, state: &mut State) -> Option<Value> {
       match self {
          Exec::While { condition, block } => Exec::while_(data, state, condition, block),
+         Exec::ForLoop { variable, iterator, block } => Exec::for_loop(data, state, variable, iterator, block),
          Exec::DoWhile { block, condition } => Exec::dowhile(data, state, block, condition),
          Exec::Return { expr } => Some(expr.eval(data, state)),
          Exec::Expr { expr } => Exec::expr(data, state, expr),
-         Exec::Branch { condition, then, otherwise } => Exec::branch(data, state, condition, then, otherwise),
+         Exec::Branch { condition, then, otherwise } => Exec::branch(data, state, condition, then, otherwise)
       }
    }
 }
@@ -103,14 +126,12 @@ impl Expr {
       state.variables[state.variables_begin + *id].clone()
    }
 
-   fn set_variable(variable: &Reference, expr: &Box<Expr>, data: &Data, state: &mut State) -> Value {
+   fn set_variable(state: &mut State, variable: &Reference, value: &Value) {
       match variable {
          Reference::Variable(id) => {
-            let value = expr.eval(data, state);
             state.variables[state.variables_begin + *id] = value.clone();
-            value
          },
-         Reference::Function(_) => unimplemented!(),
+         Reference::Function(_) => unimplemented!()
       }
    }
 
@@ -130,26 +151,9 @@ impl Expr {
             let prototype = &data.prototypes[instance.prototype];
             instance.values[prototype.field_map[field_id]] = value.clone();
          },
-         _ => {},
+         _ => {}
       }
       value
-   }
-
-   fn get_field(instance: &Box<Expr>, data: &Data, state: &mut State, field_id: &usize) -> Value {
-      match instance.eval(data, state) {
-         Value::Struct(instance_cell) => {
-            let instance = instance_cell.borrow();
-            let prototype = &data.prototypes[instance.prototype];
-            if let Some(&id) = prototype.field_map.get(field_id) {
-               instance.values[id].clone()
-            } else if let Some(&id) = prototype.method_map.get(field_id) {
-               Value::Method { function_id: id, instance: instance_cell.clone() }
-            } else {
-               Value::new_err("FieldDoesNotExist")
-            }
-         },
-         _ => Value::Nil,
-      }
    }
 
    fn eval(&self, data: &Data, state: &mut State) -> Value {
@@ -160,11 +164,11 @@ impl Expr {
             Literal::Bool(bool) => Value::Bool(*bool),
             Literal::Int(int) => Value::Int(*int),
             Literal::Float(float) => Value::Float(*float),
-            Literal::Str(str) => Value::Str(str.clone().into()),
+            Literal::Str(str) => Value::Str(str.clone().into())
          },
          Expr::Reference { reference: refer } => match refer {
             Reference::Variable(id) => Expr::get_variable(state, id),
-            &Reference::Function(function_id) => Value::Function(function_id),
+            &Reference::Function(function_id) => Value::Function(function_id)
          },
          Expr::UnaryOperation { operator, expr } => match operator {
             UnaryOperator::Not => expr.eval(data, state).not(),
@@ -178,7 +182,7 @@ impl Expr {
             UnaryOperator::Str => expr.eval(data, state).str(data),
             UnaryOperator::Len => expr.eval(data, state).len(),
             UnaryOperator::Print => expr.eval(data, state).print(data),
-            UnaryOperator::Read => expr.eval(data, state).read(),
+            UnaryOperator::Read => expr.eval(data, state).read()
          },
          Expr::BinaryOperation { operator, left, right } => match operator {
             BinaryOperator::Add => left.eval(data, state).add(right.eval(data, state)),
@@ -202,26 +206,29 @@ impl Expr {
             BinaryOperator::Remove => left.eval(data, state).remove(right.eval(data, state)),
             BinaryOperator::Index => left.eval(data, state).index(right.eval(data, state)),
             BinaryOperator::Join => left.eval(data, state).join(data, right.eval(data, state)),
-            BinaryOperator::Write => left.eval(data, state).write(right.eval(data, state)),
+            BinaryOperator::Write => left.eval(data, state).write(right.eval(data, state))
          },
          Expr::TernaryOperation { operator, first, second, third } => match operator {
             TernaryOperator::Branch => first.branch(data, state, second, third),
-            TernaryOperator::SetItem => first.eval(data, state).setitem(second.eval(data, state), third.eval(data, state)),
+            TernaryOperator::SetItem => first.eval(data, state).setitem(second.eval(data, state), third.eval(data, state))
          },
          Expr::NaryOperation { operator, parameters } => match operator {
-            NaryOperator::List => Expr::make_list(parameters, data, state),
+            NaryOperator::List => Expr::make_list(parameters, data, state)
          },
          Expr::Call { callable, parameters } => match callable.eval(data, state) {
             Value::Function(function_id) => call(data, state, function_id, parameters, None).unwrap_or(Value::Nil),
-            Value::Method { function_id, instance } => {
-               call(data, state, function_id, parameters, Some(Value::Struct(instance))).unwrap_or(Value::Nil)
-            },
-            _ => Value::new_err("NotCallable"),
+            Value::Method { function_id, instance } =>
+               call(data, state, function_id, parameters, Some(Value::Struct(instance))).unwrap_or(Value::Nil),
+            _ => Value::new_err("NotCallable")
          },
-         Expr::SetVar { variable, expr } => Expr::set_variable(variable, expr, data, state),
+         Expr::SetVar { variable, expr } => {
+            let value = expr.eval(data, state);
+            Expr::set_variable(state, variable, &value);
+            value
+         },
          Expr::Struct { prototype, values } => Expr::make_struct(prototype, values, data, state),
          Expr::SetField { instance, field_id, value } => Expr::set_field(value, data, state, instance, field_id),
-         Expr::GetField { instance, field_id } => Expr::get_field(instance, data, state, field_id),
+         Expr::GetField { instance, field_id } => instance.eval(data, state).get_field(data, *field_id)
       }
    }
 }

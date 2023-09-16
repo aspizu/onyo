@@ -5,3 +5,4 @@ __pycache__/
 vgcore.*
 project.json
 examples/tests/playground.onyo
+node_modules/
