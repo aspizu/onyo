@@ -1,6 +1,6 @@
 start: (func|structdef)*
 func: "🧅"? IDENT "(" _identlist ")" ["->" type] block
-structdef: IDENT "{" (IDENT [":" type] ","?)* "}"
+structdef: IDENT "{" (IDENT [":" type] ","?)* func* "}"
 block: "{" exec* "}"
 exec: assign | whilebranch | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret | setfield
 ret: "return" expr

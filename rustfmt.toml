@@ -21,5 +21,5 @@ reorder_modules = true
 wrap_comments = true
 use_small_heuristics = "Max"
 trailing_comma = "Never"
-#brace_style = "AlwaysNextLine"
-#control_brace_style = "AlwaysNextLine"
+# brace_style = "AlwaysNextLine"
+# control_brace_style = "AlwaysNextLine"

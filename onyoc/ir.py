@@ -34,6 +34,7 @@ class Function(Struct_):
 class Prototype(Struct_):
    name: str
    field_map: dict[int, int]
+   method_map: dict[int, int]
 
 
 class Literal(ExternallyTaggedEnum):

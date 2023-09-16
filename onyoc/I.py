@@ -14,29 +14,41 @@ class I(Interpreter[Token, None], ErrorStorage):
    def start(self, node: Tree):
       self.visit_children(node)
 
-   def func(self, node: Tree):
+   def func(self, node: Tree, qualprefix: str | None = None) -> int:
       name = cast(Token, node.children[0])
       parameters = optional_list(node.children[1:-2])
       body = cast(Tree, node.children[-1])
-      qualname = str(name)
+      qualname = qualprefix + str(name) if qualprefix else str(name)
       qualparameters = [str(i) for i in parameters]
       if redeclaration := self.functions.get(name):
          self.add_error(f"Redeclration of function {redeclaration}")
       self.functions[qualname] = (len(self.functions), Function(qualname, qualparameters, [], []), body)
+      return self.functions[qualname][0]
 
    def structdef(self, node: Tree):
       name = cast(Token, node.children[0])
       qualname = str(name)
       it = iter(node.children[1:])
       field_map = {}
-      for field_name, _field_type in zip(it, it):
-         field_qualname = str(field_name)
-         id = self.ident_map.get(field_qualname)
-         if id is None:
-            id = len(self.ident_map)
-            self.ident_map[field_qualname] = id
-         field_map[id] = len(field_map)
-      self.structs[name] = len(self.structs), Prototype(qualname, field_map)
+      method_map = {}
+      for current in it:
+         if isinstance(current, lark.Tree) and current.data == "func":
+            method_name = str(current.children[0])
+            id = self.ident_map.get(method_name)
+            if id is None:
+               id = len(self.ident_map)
+               self.ident_map[method_name] = id
+            method_map[id] = self.func(current, qualname + ".")
+         else:
+            field_name = current
+            _field_type = next(it)
+            field_qualname = str(field_name)
+            id = self.ident_map.get(field_qualname)
+            if id is None:
+               id = len(self.ident_map)
+               self.ident_map[field_qualname] = id
+            field_map[id] = len(field_map)
+      self.structs[name] = len(self.structs), Prototype(qualname, field_map, method_map)
 
    def package(self, output_file: IO[str]):
       data = Data(

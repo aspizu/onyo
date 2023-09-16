@@ -9,15 +9,17 @@ pub type Block = Vec<Exec>;
 pub struct Data {
    pub functions: Vec<Function>,
    pub prototypes: Vec<Prototype>,
-   /// field ident id -> field name
+   /// ident id -> ident name
    pub ident_map: BTreeMap<usize, String>
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Prototype {
    pub name: String,
-   /// field ident id -> index for struct.values
-   pub field_map: BTreeMap<usize, usize>
+   /// field ident id -> index for Struct.values
+   pub field_map: BTreeMap<usize, usize>,
+   /// method ident id -> index for Data.functions
+   pub method_map: BTreeMap<usize, usize>
 }
 
 #[derive(Debug, Deserialize)]
