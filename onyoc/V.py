@@ -102,6 +102,8 @@ class V(Transformer[Token, Block], ErrorStorage):
       name = args[0]
       if (variable := self.variables.get(name)) is not None:
          return Expr.Reference(Reference.Variable(variable))
+      if (function := self.i.functions.get(name)) is not None:
+         return Expr.Reference(Reference.Function(function[0]))
       self.add_error(f"Undefined variable `{name}`", range=Range.from_token(name), typo=typo(str(name), self.variables.keys()))
       return False
 
@@ -155,14 +157,21 @@ class V(Transformer[Token, Block], ErrorStorage):
       qualname = str(name)
       if generator := self.functions.get(qualname):
          return generator(self, params)  # type: ignore
+      elif (variable := self.variables.get(name)) is not None:
+         return Expr.Call(Expr.Reference(Reference.Variable(variable)), params)
       elif function := self.i.functions.get(name):
-         return Expr.Call(Reference.Function(function[0]), params)
+         return Expr.Call(Expr.Reference(Reference.Function(function[0])), params)
       else:
          self.add_error(
             f"Undefined function `{qualname}`",
             range=Range.from_token(name),
             typo=typo(qualname, chain(self.functions.keys(), self.i.functions.keys())),
          )
+
+   def vcall(self, args: list[ExprT]):
+      callable = args[0]
+      params = optional_list(args[1:])
+      return Expr.Call(callable, params)
 
    def tuple(self, args: list[Any]):
       args = optional_list(args)

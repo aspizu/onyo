@@ -135,7 +135,7 @@ push(a, 4)
 a[2] = "Hello"
 print(a[2])
 value = remove(a, len(a) - 1)
-print index(a, 2);
+print(index(a, 2))
 i = 0
 while i < len(a) {
     print(a[i])

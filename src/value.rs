@@ -18,7 +18,8 @@ pub enum Value {
    Float(f64),
    Str(Rc<str>),
    List(Rc<RefCell<Vec<Value>>>),
-   Struct(Rc<RefCell<Struct>>)
+   Struct(Rc<RefCell<Struct>>),
+   Function(usize)
 }
 
 impl From<bool> for Value {
@@ -51,6 +52,18 @@ impl From<Struct> for Value {
    }
 }
 
+impl From<&str> for Value {
+   fn from(str: &str) -> Self {
+      Value::Str(str.into())
+   }
+}
+
+impl From<String> for Value {
+   fn from(str: String) -> Self {
+      Value::Str(str.into())
+   }
+}
+
 static TYPE_NAME_NIL: &str = "nil";
 static TYPE_NAME_ERR: &str = "err";
 static TYPE_NAME_BOOL: &str = "bool";
@@ -59,17 +72,19 @@ static TYPE_NAME_FLOAT: &str = "float";
 static TYPE_NAME_STR: &str = "str";
 static TYPE_NAME_LIST: &str = "list";
 static TYPE_NAME_STRUCT: &str = "struct";
+static TYPE_NAME_FUNCTION: &str = "function";
 
 // Cache for the values returned by the type name operator.
 thread_local! {
-   static TYPE_NAME_NIL_VALUE: Value = Value::Str(TYPE_NAME_NIL.into());
-   static TYPE_NAME_ERR_VALUE: Value = Value::Str(TYPE_NAME_ERR.into());
-   static TYPE_NAME_BOOL_VALUE: Value = Value::Str(TYPE_NAME_BOOL.into());
-   static TYPE_NAME_INT_VALUE: Value = Value::Str(TYPE_NAME_INT.into());
-   static TYPE_NAME_FLOAT_VALUE: Value = Value::Str(TYPE_NAME_FLOAT.into());
-   static TYPE_NAME_STR_VALUE: Value = Value::Str(TYPE_NAME_STR.into());
-   static TYPE_NAME_LIST_VALUE: Value = Value::Str(TYPE_NAME_LIST.into());
-   static TYPE_NAME_STRUCT_VALUE: Value = Value::Str(TYPE_NAME_STRUCT.into());
+   static TYPE_NAME_NIL_VALUE: Value = TYPE_NAME_NIL.into();
+   static TYPE_NAME_ERR_VALUE: Value = TYPE_NAME_ERR.into();
+   static TYPE_NAME_BOOL_VALUE: Value = TYPE_NAME_BOOL.into();
+   static TYPE_NAME_INT_VALUE: Value = TYPE_NAME_INT.into();
+   static TYPE_NAME_FLOAT_VALUE: Value = TYPE_NAME_FLOAT.into();
+   static TYPE_NAME_STR_VALUE: Value = TYPE_NAME_STR.into();
+   static TYPE_NAME_LIST_VALUE: Value = TYPE_NAME_LIST.into();
+   static TYPE_NAME_STRUCT_VALUE: Value = TYPE_NAME_STRUCT.into();
+   static TYPE_NAME_FUNCTION_VALUE: Value = TYPE_NAME_FUNCTION.into();
 }
 
 impl Struct {
@@ -106,13 +121,16 @@ impl Value {
          },
          Value::Struct(instance) => {
             let instance = instance.borrow();
-            write!(into, "{{").unwrap();
             let prototype = &data.prototypes[instance.prototype];
+            write!(into, "{} {{", prototype.name).unwrap();
             Value::fmt_join(data, into, prototype.field_map.iter(), ", ", |(field_id, index), data, into| {
-               write!(into, "{}: ", data.ident_map[field_id]).unwrap();
+               write!(into, "{} = ", data.ident_map[field_id]).unwrap();
                instance.values[*index].fmt(data, into)
             });
             write!(into, "}}").unwrap();
+         },
+         Value::Function(function_id) => {
+            write!(into, "{}()", data.functions[*function_id].name).unwrap();
          }
       }
    }
@@ -143,7 +161,7 @@ impl Value {
          (Value::Int(left), Value::Float(right)) => (left as f64 + right).into(),
          (Value::Float(left), Value::Int(right)) => (left + right as f64).into(),
          (Value::Float(left), Value::Float(right)) => (left + right).into(),
-         (Value::Str(left), Value::Str(right)) => Value::Str(format!("{left}{right}").into()),
+         (Value::Str(left), Value::Str(right)) => format!("{left}{right}").into(),
          (Value::List(left), Value::List(right)) =>
             Value::List(RefCell::new(left.borrow().iter().chain(right.borrow().iter()).cloned().collect()).into()),
          _ => Value::Nil
@@ -237,19 +255,20 @@ impl Value {
 
    pub fn eq(&self, other: &Value) -> bool {
       match (self, other) {
-         (Value::Bool(left), Value::Bool(right)) => *left == *right,
-         (Value::Bool(left), Value::Int(right)) => *left as i64 == *right,
-         (Value::Bool(left), Value::Float(right)) => *left as i64 as f64 == *right,
-         (Value::Int(left), Value::Bool(right)) => *left == *right as i64,
-         (Value::Float(left), Value::Bool(right)) => *left == *right as i64 as f64,
-         (Value::Int(left), Value::Int(right)) => *left == *right,
-         (Value::Float(left), Value::Float(right)) => *left == *right,
-         (Value::Int(left), Value::Float(right)) => *left == *right as i64,
-         (Value::Float(left), Value::Int(right)) => *left as i64 == *right,
-         (Value::Str(left), Value::Str(right)) => *left == *right,
-         (Value::Err(left), Value::Err(right)) => left.eq(right),
+         (Value::Bool(left), Value::Bool(right)) => left == right,
+         (&Value::Bool(left), &Value::Int(right)) => left as i64 == right,
+         (&Value::Bool(left), &Value::Float(right)) => left as i64 as f64 == right,
+         (&Value::Int(left), &Value::Bool(right)) => left == right as i64,
+         (&Value::Float(left), &Value::Bool(right)) => left == right as i64 as f64,
+         (Value::Int(left), Value::Int(right)) => left == right,
+         (Value::Float(left), Value::Float(right)) => left == right,
+         (&Value::Int(left), &Value::Float(right)) => left == right as i64,
+         (&Value::Float(left), &Value::Int(right)) => left as i64 == right,
+         (Value::Str(left), Value::Str(right)) => left == right,
+         (Value::Err(left), Value::Err(right)) => left.eq(&right),
          (Value::List(left), Value::List(right)) => left.borrow().iter().zip(right.borrow().iter()).all(|(l, r)| l.eq(r)),
          (Value::Struct(left), Value::Struct(right)) => left.borrow().eq(&right.borrow()),
+         (Value::Function(left), Value::Function(right)) => left == right,
          _ => false
       }
    }
@@ -262,6 +281,7 @@ impl Value {
          (Value::Str(left), Value::Str(right)) => Rc::ptr_eq(left, right),
          (Value::List(left), Value::List(right)) => Rc::ptr_eq(left, right),
          (Value::Struct(left), Value::Struct(right)) => Rc::ptr_eq(left, right),
+         (Value::Function(left), Value::Function(right)) => left == right, // 'is' and '==' on functions are the same thing.
          _ => false
       }
    }
@@ -360,7 +380,7 @@ impl Value {
       match (self, other) {
          (Value::Str(str), Value::Int(index)) =>
             (if index < 0 { str.chars().nth_back((1 - index) as usize) } else { str.chars().nth(index as usize) })
-               .map(|v| Value::Str(Rc::from(v.to_string())))
+               .map(|v| v.to_string().into())
                .unwrap_or(Value::Nil),
          (Value::List(list), Value::Int(mut index)) => {
             let list = list.borrow();
@@ -385,8 +405,9 @@ impl Value {
          Value::List(_) => TYPE_NAME_LIST_VALUE.with(|v| v.clone()),
          Value::Struct(instance) => {
             let instance = instance.borrow();
-            Value::Str(data.prototypes[instance.prototype].name.clone().into())
-         } // TODO: Cache this
+            data.prototypes[instance.prototype].name.clone().into()
+         }, // TODO: Cache this
+         Value::Function(_) => TYPE_NAME_FUNCTION_VALUE.with(|v| v.clone())
       }
    }
 
@@ -397,7 +418,7 @@ impl Value {
    pub fn err(self) -> Value {
       match self {
          Value::Err(val) => *val,
-         _ => Value::Err(Box::from(self))
+         _ => Value::Err(self.into())
       }
    }
 
@@ -428,7 +449,7 @@ impl Value {
    pub fn str(self, data: &Data) -> Value {
       let mut s = String::new();
       self.fmt(data, &mut s);
-      Value::Str(s.into())
+      s.into()
    }
 
    pub fn index(self, other: Value) -> Value {
@@ -498,14 +519,12 @@ impl Value {
    }
 
    pub fn join(&self, data: &Data, other: Value) -> Value {
-      let Value::Str(sep) = other else {
-         return Value::Nil;
-      };
+      let Value::Str(sep) = other else { return Value::Nil };
       match self {
          Value::List(list) => {
             let mut s = String::new();
             Value::fmt_join(data, &mut s, list.borrow().iter(), &sep, Value::fmt);
-            Value::Str(s.into())
+            s.into()
          },
 
          _ => Value::Nil
@@ -513,18 +532,18 @@ impl Value {
    }
 
    pub fn from_error(error: impl Error) -> Value {
-      Value::Err(Value::Str(error.to_string().into()).into())
+      Value::Err(Box::new(error.to_string().into()))
    }
 
    pub fn new_err(string: &str) -> Value {
-      Value::Err((Value::Str(string.into())).into())
+      Value::Err(Box::new(string.into()))
    }
 
    pub fn read(self) -> Value {
       match self {
          Value::Str(str) => match fs::read_to_string(&*str) {
             Err(err) => Value::from_error(err),
-            Ok(str) => Value::Str(str.into())
+            Ok(str) => str.into()
          },
          _ => Value::new_err("TypeError")
       }

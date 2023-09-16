@@ -157,7 +157,7 @@ impl Expr {
          },
          Expr::Reference { reference: refer } => match refer {
             Reference::Variable(id) => Expr::get_variable(state, id),
-            Reference::Function(_) => unimplemented!()
+            &Reference::Function(function_id) => Value::Function(function_id)
          },
          Expr::UnaryOperation { operator, expr } => match operator {
             UnaryOperator::Not => expr.eval(data, state).not(),
@@ -204,9 +204,9 @@ impl Expr {
          Expr::NaryOperation { operator, parameters } => match operator {
             NaryOperator::List => Expr::make_list(parameters, data, state)
          },
-         Expr::Call { variable, parameters } => match variable {
-            Reference::Function(function_id) => call(data, state, *function_id, parameters).unwrap_or(Value::Nil),
-            Reference::Variable(_) => unimplemented!()
+         Expr::Call { callable, parameters } => match callable.eval(data, state) {
+            Value::Function(function_id) => call(data, state, function_id, parameters).unwrap_or(Value::Nil),
+            _ => Value::new_err("NotCallable")
          },
          Expr::SetVar { variable, expr } => Expr::set_variable(variable, expr, data, state),
          Expr::Struct { prototype, values } => Expr::make_struct(prototype, values, data, state),

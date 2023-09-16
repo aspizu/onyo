@@ -1,5 +1,5 @@
 start: (func|structdef)*
-func: IDENT "(" _identlist ")" ["->" type] block
+func: "🧅"? IDENT "(" _identlist ")" ["->" type] block
 structdef: IDENT "{" (IDENT [":" type] ","?)* "}"
 block: "{" exec* "}"
 exec: assign | whilebranch | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret | setfield
@@ -41,6 +41,7 @@ expr: NIL | BOOL | INT | FLOAT |  STRING
     | getitem
     | getfield
     | call
+    | vcall
     | list
     | tuple
     | struct
@@ -74,6 +75,7 @@ minus: "-" expr
 getitem: expr "[" expr "]"
 setfield: expr "." IDENT "=" expr
 getfield: expr "." IDENT
+vcall: expr "(" _exprlist ")"
 call: IDENT "(" _exprlist ")"
 _exprlist: [expr ("," expr)*] 
 _identlist: [IDENT ("," IDENT)*] 

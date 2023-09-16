@@ -139,7 +139,7 @@ pub enum Expr {
    BinaryOperation { operator: BinaryOperator, left: Box<Expr>, right: Box<Expr> },
    TernaryOperation { operator: TernaryOperator, first: Box<Expr>, second: Box<Expr>, third: Box<Expr> },
    NaryOperation { operator: NaryOperator, parameters: Vec<Expr> },
-   Call { variable: Reference, parameters: Vec<Expr> },
+   Call { callable: Box<Expr>, parameters: Vec<Expr> },
    Struct { prototype: usize, values: Vec<Expr> },
    SetVar { variable: Reference, expr: Box<Expr> },
    SetField { instance: Box<Expr>, field_id: usize, value: Box<Expr> },

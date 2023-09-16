@@ -186,7 +186,7 @@ class Expr(InternallyTaggedEnum):
 
    @dataclass
    class Call(ExprT, Struct_):
-      variable: ReferenceT
+      callable: ExprT
       parameters: list[ExprT]
 
    @dataclass
