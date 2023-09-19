@@ -1,0 +1,58 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+html {
+  background: #272e33;
+}
+
+pre {
+  background: #1e2326;
+  padding: 1rem;
+  margin: 2rem;
+  border-radius: 0.2rem;
+}
+
+code {
+  font: normal normal normal 14px "Hermit";
+  color: #d3c6aa;
+}
+code .struct {
+  color: #83c092;
+  font-weight: bold;
+}
+code .function {
+  color: #a7c080;
+  font-weight: bold;
+}
+code .parameter {
+  color: #7fbbb3;
+}
+code .keyword {
+  color: #e67e80;
+  font-weight: bold;
+}
+code .field {
+  font-weight: bold;
+}
+code .int,
+code .float {
+  color: #d699b6;
+}
+code .str {
+  color: #dbbc7f;
+}
+code .nil,
+code .iterend {
+  color: #e69875;
+  font-weight: bold;
+}
+code .bool {
+  color: #d699b6;
+  font-weight: bold;
+}
+
+/*# sourceMappingURL=syntax.css.map */

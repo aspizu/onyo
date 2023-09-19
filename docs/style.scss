@@ -1,0 +1,125 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font: normal normal normal 14px Hermit;
+  text-decoration: none;
+  color: #d3c6aa;
+}
+
+html {
+  background: #272e33;
+}
+
+body {
+  display: grid;
+  gap: 2rem;
+  margin: 2rem auto;
+  width: 65rem;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: bold;
+  color: #fffbef;
+}
+
+h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #374145;
+}
+
+h3 {
+  color: #83c092;
+}
+
+h4 {
+  color: #d699b6;
+}
+
+a {
+  color: #a7c080;
+
+  &:hover {
+    background: #a7c080;
+    color: white;
+  }
+}
+
+ul {
+  margin-left: 1.5rem;
+  list-style: "* ";
+}
+
+.mascot {
+  width: 2rem;
+}
+
+th {
+  color: #83c092;
+  font-weight: bold;
+  text-align: left;
+  padding-bottom: 0.5rem;
+}
+
+pre {
+  background: #1e2326;
+  padding: 1rem;
+  border-radius: 0.2rem;
+}
+
+code {
+  color: #fffbef;
+}
+
+pre code {
+  color: #d3c6aa;
+
+  .struct {
+    color: #83c092;
+    font-weight: bold;
+  }
+
+  .function {
+    color: #a7c080;
+    font-weight: bold;
+  }
+
+  .parameter {
+    color: #7fbbb3;
+  }
+
+  .keyword {
+    color: #e67e80;
+    font-weight: bold;
+  }
+
+  .field {
+    font-weight: bold;
+  }
+
+  .int,
+  .float {
+    color: #d699b6;
+  }
+
+  .str {
+    color: #dbbc7f;
+  }
+
+  .nil,
+  .iterend {
+    color: #e69875;
+    font-weight: bold;
+  }
+
+  .bool {
+    color: #d699b6;
+    font-weight: bold;
+  }
+}

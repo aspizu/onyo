@@ -51,11 +51,12 @@ class I(Interpreter[Token, None], ErrorStorage):
       self.structs[name] = len(self.structs), Prototype(qualname, field_map, method_map)
 
    def package(self, output_file: IO[str]):
+      reserved = ReservedIdents.from_ident_map(self.ident_map)
       data = Data(
          [i[1] for i in self.functions.values()],
          [i[1] for i in self.structs.values()],
          {v: k for k, v in self.ident_map.items()},
-         ReservedIdents.from_ident_map(self.ident_map),
+         reserved,
       )
       json.dump(to_json(data), output_file, indent=4)
 

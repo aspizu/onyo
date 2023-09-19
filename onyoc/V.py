@@ -82,6 +82,9 @@ class V(Transformer[Token, Block], ErrorStorage):
    def NIL(self, token: Token):
       return Expr.Literal(Literal.Nil())
 
+   def ITEREND(self, token: Token):
+      return Expr.Literal(Literal.IterEnd())
+
    def BOOL(self, token: Token):
       return Expr.Literal(Literal.Bool(token == "true"))
 

@@ -1,11 +1,12 @@
 start: (func|structdef)*
-func: "🧅"? IDENT "(" _identlist ")" ["->" type] block
-structdef: IDENT "{" (IDENT [":" type] ","?)* func* "}"
+func: IDENT "(" _identlist ")" block
+structdef: IDENT "{" _identlist func* "}"
+raw_block: exec*
 block: "{" exec* "}"
 exec: assign | whilebranch | forloop | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret | setfield
 ret: "return" expr
 execexpr: "eval" expr
-assign: IDENT [":" type] "=" expr
+assign: IDENT "=" expr
 whilebranch: "while" expr block 
 forloop: "for" IDENT "in" expr block
 dowhile: "do" block "while" expr
@@ -14,9 +15,9 @@ ifelse: "if" expr block "else" block
 ifelif: "if" expr block ("elif" expr block)+ 
 ifelifelse: "if" expr block ("elif" expr block)+ "else" block 
 var: IDENT
-expr: NIL | BOOL | INT | FLOAT |  STRING
+expr: NIL | ITEREND | BOOL | INT | FLOAT |  STRING
     | var
-    | IDENT ":" [type] "=" expr -> assign
+    | IDENT ":=" expr -> assign
     | expr "." IDENT ":=" expr -> setfield
     | branch
     | orbranch
@@ -45,12 +46,10 @@ expr: NIL | BOOL | INT | FLOAT |  STRING
     | call
     | vcall
     | list
-    | tuple
     | struct
     | "(" expr ")"
-tuple: "{" _exprlist "}"
 list: "[" _exprlist "]"
-struct: IDENT "{" (IDENT "=" expr ","?)* "}"
+struct: IDENT "{" [IDENT "=" expr ("," IDENT "=" expr)*] "}"
 branch: "if" expr "then" expr "else" expr
 orbranch: expr "or" expr
 andbranch: expr "and" expr 
@@ -81,16 +80,8 @@ vcall: expr "(" _exprlist ")"
 call: IDENT "(" _exprlist ")"
 _exprlist: [expr ("," expr)*] 
 _identlist: [IDENT ("," IDENT)*] 
-_typelist: [type ("," type)*]
-type: NIL | "bool" | "int" | "float" | "str" | "any" | "never"
-    | "{" _typelist "}" -> typetuplefinite
-    | "[" _typelist "]" -> typelistfinite
-    | "tuple" "(" type ")" -> typetuple
-    | "list" "(" type ")" -> typelist
-    | "err" "(" type ")" -> typeerr
-    | type ("|" type)+ -> typeunion
-    | IDENT -> typevar
 NIL: "nil"
+ITEREND: "iterend"
 BOOL: "true" | "false"
 CPP_COMMENT: ";" /[^\n]*/
 C_COMMENT: "/-" /(.|\n)*?/ "-/"

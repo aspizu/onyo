@@ -1,0 +1,537 @@
+
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8" />
+<title>README</title>
+<style>
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font: normal normal normal 14px Hermit;
+  font-family: Hermit, Cascadia Code, Inconsolata, monospace;
+  text-decoration: none;
+  color: #d3c6aa;
+}
+
+html {
+  background: #272e33;
+}
+
+body {
+  display: grid;
+  gap: 2rem;
+  margin: 2rem auto;
+  width: 65rem;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: bold;
+  color: #fffbef;
+}
+
+h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #374145;
+}
+
+h3 {
+  color: #83c092;
+}
+
+h4 {
+  color: #d699b6;
+}
+
+a {
+  color: #a7c080;
+}
+a:hover {
+  background: #a7c080;
+  color: white;
+}
+
+ul {
+  margin-left: 1.5rem;
+  list-style: "* ";
+}
+
+.mascot {
+  width: 2rem;
+}
+
+th {
+  color: #83c092;
+  font-weight: bold;
+  text-align: left;
+  padding-bottom: 0.5rem;
+}
+
+pre {
+  background: #1e2326;
+  padding: 1rem;
+  border-radius: 0.2rem;
+}
+
+code {
+  color: #fffbef;
+}
+
+pre code {
+  color: #d3c6aa;
+}
+pre code .struct {
+  color: #83c092;
+  font-weight: bold;
+}
+pre code .function {
+  color: #a7c080;
+  font-weight: bold;
+}
+pre code .parameter {
+  color: #7fbbb3;
+}
+pre code .keyword {
+  color: #e67e80;
+  font-weight: bold;
+}
+pre code .field {
+  font-weight: bold;
+}
+pre code .int,
+pre code .float {
+  color: #d699b6;
+}
+pre code .str {
+  color: #dbbc7f;
+}
+pre code .nil,
+pre code .iterend {
+  color: #e69875;
+  font-weight: bold;
+}
+pre code .bool {
+  color: #d699b6;
+  font-weight: bold;
+}
+
+/*# sourceMappingURL=style.css.map */
+
+</style>
+</head>
+<body>
+<h3>Priyanshu Dangare &lt;aspizu@protonmail.com&gt; <a href="https://github.com/aspizu/onyo/tree/rust">Source</a></h3>
+
+
+<h1>onyo</h1>
+<p>onyo is a interpreted, dynamically typed, automatic memory managed programming language. onyo was designed to have a simple
+implementation while maintaining the user friendliness of dynamic programming languages such as Python, Javascript and Ruby.</p>
+<h4>Contents</h4>
+<ul>
+<li><a href="#c-onyo-interpreter">C onyo Interpreter</a></li>
+<li><a href="#rust-onyo-interpreter-onyo-rs">Rust onyo Interpreter</a></li>
+<li><a href="#language-reference">Language Reference</a></li>
+</ul>
+<h1>C onyo Interpreter</h1>
+<p>The original onyo interpreter was written in C. I chose C because it let me implement all the constructs of the language such as
+Dynamic arrays, Hash tables and Reference-counted pointers on my own. By implementing the interpreter in C, I learn't how these
+constructs work behind the scenes of a dynamic programming language.</p>
+<h2>Parsing</h2>
+<p>The first step in interpreting code is to parse it into a Abstract Syntax Tree. Using the recursive descent parsing method, it
+is trivial to parse a lisp-like syntax.</p>
+<ul>
+<li><a href="https://iitd.github.io/col728/lec/parsing.html">https://iitd.github.io/col728/lec/parsing.html</a></li>
+<li><a href="https://web.archive.org/web/20190307204217/https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm">https://web.archive.org/web/20190307204217/https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm</a></li>
+<li><a href="https://en.wikipedia.org/wiki/S-expression">https://en.wikipedia.org/wiki/S-expression</a></li>
+</ul>
+<pre><code>(+ A (* B C))
+</code></pre><pre><code>  +
+ / \
+a   *
+   / \
+  b   c
+</code></pre><p>Though this syntax is easy to implement, its harder to write and format. Thus the Rust version of onyo does not use this syntax.</p>
+<h2>Tree-walking interpreter</h2>
+<p>The interpreter works by walking the Abstract Syntax Tree and performing the operators and instructions.</p>
+<h2>Memory Management</h2>
+<p>Programming languages such as Java, Python and Javascript automatically manage memory for the programmer using various
+methods. onyo uses a method called Reference Counting.</p>
+<p>In Reference Counting, each object contains a counter saying how many references to it there are. When you refer to an object,
+you increment the counter. When you're done with it, you decrement the counter. When the counter reaches 0, the object can be
+recycled.</p>
+<p>Though this is a simple solution, it does not prevent the programmer from creating cyclic references, which creates a memory
+leak. It also does not do any optimization for allocation and deallocation.</p>
+<h2>Data types implementation</h2>
+<h3>Dynamic arrays</h3>
+<p>Dynamic arrays in C onyo were implemented in a similar way to how the <code>Vec</code> data structure works in Rust. The capacity of a
+dynamic array will grow with a factor of 2 times the old capacity. onyo provides no way to shrink the capacity of a dynamic
+array.</p>
+<ul>
+<li><a href="https://doc.rust-lang.org/nomicon/vec/vec.html">https://doc.rust-lang.org/nomicon/vec/vec.html</a></li>
+</ul>
+<h3>Hash maps</h3>
+<p>The <code>table</code> data type in C onyo was implemented using a placeholder implementation which uses linear search. The plan was to
+later replace the linear search with a proper hash table implementation which was eventually ditched after switching to Rust.</p>
+<h1>Rust onyo Interpreter (onyo-rs)</h1>
+<p>Though C taught me how to implement the constructs by my own, it was getting quite difficult to debug. Thus, I decided to
+rewrite the interpreter in the Rust programming language. This lead to major design changes in the language. The rust version of
+onyo uses a JSON format instead of S-expressions. A compiler written in Python is used to compile onyo code into a JSON file.</p>
+<h2>Differences from C onyo</h2>
+<p>C onyo's compiler was optional, but the compiler is required in the Rust version. onyo-rs is much more stable than C onyo and
+it is faster to develop features. Rust's features such as <code>Rc</code> for reference-counting, <code>Vec</code> for dynamic arrays and <code>HashMap</code>
+for hash maps were helpful.</p>
+<h1>Language Reference</h1>
+<h4>Contents</h4>
+<ul>
+<li><a href="#data-types">Data Types</a>
+<ul>
+<li><a href="#tuples">Tuples</a></li>
+<li><a href="#lists">Lists</a></li>
+</ul>
+</li>
+<li><a href="#language-features">Language Features</a>
+<ul>
+<li><a href="#comments">Comments</a></li>
+<li><a href="#functions">Functions</a>
+<ul>
+<li><a href="#main-function">Main Function</a></li>
+</ul>
+</li>
+<li><a href="#structs">Structs</a></li>
+<li><a href="#variables">Variables</a></li>
+<li><a href="#conditions">Conditions</a></li>
+<li><a href="#loops">Loops</a></li>
+</ul>
+</li>
+<li><a href="#operators">Operators</a></li>
+<li><a href="#builtin-functions">Builtin Functions</a></li>
+</ul>
+<h1>Data Types</h1>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nil</code></td>
+<td>The null type has the only value <code>null</code>.</td>
+</tr>
+<tr>
+<td><code>iterend</code></td>
+<td>Marks the end of a iterator.</td>
+</tr>
+<tr>
+<td><code>err</code></td>
+<td>Err is used to return errors, it can contain any value.</td>
+</tr>
+<tr>
+<td><code>bool</code></td>
+<td>The bool type has two values, <code>true</code> or <code>false</code>.</td>
+</tr>
+<tr>
+<td><code>int</code></td>
+<td>Signed integers, equal to <code>i64</code> in Rust.</td>
+</tr>
+<tr>
+<td><code>float</code></td>
+<td>Double precession floating point, equal to <code>f64</code> in Rust.</td>
+</tr>
+<tr>
+<td><code>str</code></td>
+<td>Immutable string.</td>
+</tr>
+<tr>
+<td><code>list</code></td>
+<td>Mutable dynamic array of values.</td>
+</tr>
+</tbody>
+</table>
+<h2>Lists</h2>
+<pre><code>a = [<span class="int">1</span>, <span class="int">2</span>, <span class="int">3</span>]
+<span class="function">push</span>(a, <span class="int">4</span>)
+;a[2] = "Hello"
+<span class="function">print</span>(a[<span class="int">2</span>])
+value = <span class="function">remove</span>(a, <span class="function">len</span>(a) - <span class="int">1</span>)
+<span class="function">print</span>(<span class="function">index</span>(a, <span class="int">2</span>))
+i = <span class="int">0</span>
+<span class="keyword">while</span> i < <span class="function">len</span>(a) {
+   <span class="function">print</span>(a[i])
+   i = i + <span class="int">1</span>
+}
+</code></pre><h1>Language Features</h1>
+<h2>Comments</h2>
+<pre><code>; Single-line comments.
+; There are no multi-line comments.
+</code></pre><h2>Functions</h2>
+<pre><code><span class="function">function_name</span>(<span class="parameter">arguments</span><span class="parameter">,</span> <span class="parameter">etc</span>) {
+   ; ...
+}
+</code></pre><h3>Calling functions</h3>
+<pre><code>result = <span class="function">function</span>()
+</code></pre><pre><code><span class="function">function</span>()
+</code></pre><h3>Returning values</h3>
+<pre><code><span class="keyword">return</span> value
+</code></pre><p>Bare returns are not possible because the syntax avoids semi-colons.</p>
+<p>An explicit</p>
+<pre><code><span class="keyword">return</span> <span class="nil">nil</span>
+</code></pre><p>must be used.</p>
+<p>Functions implicitly return <code>nil</code>.</p>
+<h3>Main function</h3>
+<p>Must be present in every program. Takes no arguments.</p>
+<pre><code><span class="function">main</span>() {
+   ; ...
+}
+</code></pre><h2>Structs</h2>
+<p>Structs are called classes in other programming languages. They can contain fields which hold values and methods with an
+implicit <code>self</code> parameter.</p>
+<p>Struct fields are static, which means that you cannot add a new field to a struct instance at run-time like you could do in
+Javascript.</p>
+<pre><code><span class="struct">Person</span> <span class="field">{</span>
+   <span class="field">name</span><span class="field">,</span> <span class="field">age</span>
+
+   <span class="function">greet</span>(<span class="parameter">self</span>) {
+      <span class="keyword">return</span> <span class="str">"Hello, "</span> + self.<span class="field">name</span> + <span class="str">"!"</span>
+   }
+}
+</code></pre><pre><code>bdfl = <span class="struct">Person</span> { <span class="field">name</span> = <span class="str">"aspizu"</span>, <span class="field">age</span> = <span class="int">18</span> }
+friend =
+   <span class="struct">Person</span> {
+      <span class="field">name</span> = <span class="str">"friend"</span>,
+      <span class="field">age</span> = <span class="int">17</span>
+   }
+<span class="function">print</span>(bdfl.<span class="field">greet</span>())
+</code></pre><h4>Instance method binding behaviour</h4>
+<p>When a method is accessed on a struct instance, a bound method value is created. A bound method holds a reference to the
+corresponding instance. When it is called, the instance is passed as the first parameter automatically.</p>
+<pre><code>bound_method = bdfl.<span class="field">greet</span>
+<span class="function">print</span>(<span class="function">bound_method</span>()) ; Note that this does not require passing `bdfl` as an parameter.
+</code></pre><p>Currently there is no way to get the instance from a lone bound method, unless the method returns <code>self</code> ofcourse.</p>
+<h2>Variables</h2>
+<p>Uninitialized variables are set to <code>nil</code>. There are no global variables.</p>
+<pre><code>name = value
+name += value
+name -= value
+name -= value
+name /= value
+name %= value
+</code></pre><h2>Conditions</h2>
+<pre><code><span class="keyword">if</span> condition {
+   ; ...
+} <span class="keyword">elif</span> condition {
+   ; ...
+} <span class="keyword">else</span> {
+   ; ...
+}
+</code></pre><h2>While and Do While loops</h2>
+<pre><code><span class="keyword">while</span> condition {
+   ; ...
+}
+</code></pre><h1>Iterators</h1>
+<p>Onyo supports lazy iterators using structs. An iterator struct must define a <code>.next()</code> method which either returns a value or
+the special value <code>iterend</code>.</p>
+<p>See <a href="./examples/tests/itertools.onyo">./examples/tests/itertools.onyo</a> for various iterator functionality.</p>
+<h2>For loop</h2>
+<p>Iterators can be iterated on using the for loop.</p>
+<pre><code><span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">iter</span>([<span class="int">1</span>, <span class="int">2</span>, <span class="int">3</span>]) {
+   <span class="function">print</span>(i)
+}
+</code></pre><h1>Operators</h1>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>a + b</code></td>
+<td>Adds numbers, concats strings.</td>
+</tr>
+<tr>
+<td><code>a - b</code></td>
+<td>Subtracts numbers.</td>
+</tr>
+<tr>
+<td><code>-a</code></td>
+<td>Subtract number from 0.</td>
+</tr>
+<tr>
+<td><code>a * b</code></td>
+<td>Multiplies numbers.</td>
+</tr>
+<tr>
+<td><code>a / b</code></td>
+<td>Divides numbers.</td>
+</tr>
+<tr>
+<td><code>a % b</code></td>
+<td>Mod operator.</td>
+</tr>
+<tr>
+<td><code>a &amp; b</code></td>
+<td>Bitwise And operator.</td>
+</tr>
+<tr>
+<td><code>a ^ b</code></td>
+<td>Bitwise Xor operator.</td>
+</tr>
+<tr>
+<td><code>a | b</code></td>
+<td>Bitwise Or operator.</td>
+</tr>
+<tr>
+<td><code>~a</code></td>
+<td>Bitwise Not operator.</td>
+</tr>
+<tr>
+<td><code>a &lt;&lt; b</code></td>
+<td>Bitwise left shift operator.</td>
+</tr>
+<tr>
+<td><code>a &gt;&gt; b</code></td>
+<td>Bitwise right shift operator.</td>
+</tr>
+<tr>
+<td><code>a == b</code></td>
+<td>Equality operator.</td>
+</tr>
+<tr>
+<td><code>a is b</code></td>
+<td>Identity operator. Returns true if both values point to same memory.</td>
+</tr>
+<tr>
+<td><code>a != b</code></td>
+<td>Not equals operator.</td>
+</tr>
+<tr>
+<td><code>a &lt; b</code></td>
+<td>Less than operator. Compares numbers and strings.</td>
+</tr>
+<tr>
+<td><code>a &gt; b</code></td>
+<td>Greater than operator. ditto.</td>
+</tr>
+<tr>
+<td><code>a &lt;= b</code></td>
+<td>Less than equal to operator. ditto.</td>
+</tr>
+<tr>
+<td><code>a &gt;= b</code></td>
+<td>Greater than equal to operator. ditto.</td>
+</tr>
+<tr>
+<td><code>a or b</code></td>
+<td>If a then b else a.</td>
+</tr>
+<tr>
+<td><code>a and b</code></td>
+<td>If a then a else b.</td>
+</tr>
+<tr>
+<td><code>not a</code></td>
+<td>Logical not operator.</td>
+</tr>
+<tr>
+<td><code>iterable[index]</code></td>
+<td>Get element at index in iterable.</td>
+</tr>
+<tr>
+<td><code>if b then a else c</code></td>
+<td>If b then a else c.</td>
+</tr>
+<tr>
+<td><code>var := val</code></td>
+<td>Set var to val and return val.</td>
+</tr>
+</tbody>
+</table>
+<p>For the arithmetic operators, if any one of the operands is a float, the result will be a float.</p>
+<h2>Type Errors</h2>
+<p>All operators return <code>nil</code> on type errors. Operators do not coerce types.</p>
+<h1>Builtin functions</h1>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>err(a)</code></td>
+<td>Wraps <code>a</code> in a err, if <code>a</code> is an <code>err</code> then returns the value inside it.</td>
+</tr>
+<tr>
+<td><code>bool(a)</code></td>
+<td>Converts to bool.</td>
+</tr>
+<tr>
+<td><code>int(a)</code></td>
+<td>Converts to int.</td>
+</tr>
+<tr>
+<td><code>float(a)</code></td>
+<td>Converts to float.</td>
+</tr>
+<tr>
+<td><code>str(a)</code></td>
+<td>Converts to str.</td>
+</tr>
+<tr>
+<td><code>type(a)</code></td>
+<td>Returns the type name as a str.</td>
+</tr>
+<tr>
+<td><code>index(iterable, element)</code></td>
+<td>Returns the index of element in iterable.</td>
+</tr>
+<tr>
+<td><code>len(iterable)</code></td>
+<td>Returns the length of iterable.</td>
+</tr>
+<tr>
+<td><code>push(list, element)</code></td>
+<td>Add element to the end of list.</td>
+</tr>
+<tr>
+<td><code>remove(list, index)</code></td>
+<td>Remove element at index in list and return it.</td>
+</tr>
+<tr>
+<td><code>list[index] = value</code></td>
+<td>Set element at index in list.</td>
+</tr>
+<tr>
+<td><code>print(value)</code></td>
+<td>Prints value to stdout.</td>
+</tr>
+<tr>
+<td><code>join(iterable, seperator)</code></td>
+<td>Join values in iterable by placing <code>seperator</code> between each element.</td>
+</tr>
+<tr>
+<td><code>read(file_path)</code></td>
+<td>Return the contents of file at <code>file_path</code> as a <code>str</code>, returns a <code>err(str)</code> on failure.</td>
+</tr>
+<tr>
+<td><code>write(file_path, data)</code></td>
+<td>Writes <code>data</code> into file at <code>file_path</code>, returns a <code>err(str)</code>on failure or<code>true</code> on success.</td>
+</tr>
+</tbody>
+</table>
+<p>Iterable means either a str, list.</p>
+<p>The type conversion functions return <code>nil</code> if the value cannot be converted.</p>
+
+</body>
+</html>

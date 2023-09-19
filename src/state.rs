@@ -1,4 +1,4 @@
-use std::{cell::RefCell, iter::repeat, rc::Rc};
+use std::{cell::RefCell, iter::repeat, ops::Drop, rc::Rc};
 
 use crate::{ir::*, value::*};
 
@@ -13,6 +13,13 @@ pub struct State {
 impl State {
    pub fn new() -> Self {
       Self { variables: vec![], variables_begin: 0 }
+   }
+}
+
+impl Drop for State {
+   fn drop(&mut self) {
+      assert!(self.variables_begin == 0);
+      assert!(self.variables.len() == 0);
    }
 }
 
@@ -68,12 +75,8 @@ impl Exec {
       };
       loop {
          let next = call(data, state, next_method, &vec![], Some(iterator.clone())).unwrap_or(Value::Nil);
-         if let Value::Err(err) = &next {
-            if let Value::Str(str) = &**err {
-               if &**str == "StopIteration" {
-                  break;
-               }
-            }
+         if let Value::IterEnd = next {
+            break;
          }
          Expr::set_variable(state, variable, &next);
          if let Some(v) = Exec::exec_all(data, state, block) {
@@ -143,7 +146,7 @@ impl Expr {
       Struct { prototype: *prototype, values: values.iter().map(|v| v.eval(data, state)).collect() }.into()
    }
 
-   fn set_field(value: &Box<Expr>, data: &Data, state: &mut State, instance: &Expr, field_id: &usize) -> Value {
+   fn set_field(value: &Expr, data: &Data, state: &mut State, instance: &Expr, field_id: &usize) -> Value {
       let value = value.eval(data, state);
       match instance.eval(data, state) {
          Value::Struct(instance) => {
@@ -161,6 +164,7 @@ impl Expr {
          Expr::Literal { literal } => match literal {
             // FIXME: Cache literals.
             Literal::Nil => Value::Nil,
+            Literal::IterEnd => Value::IterEnd,
             Literal::Bool(bool) => Value::Bool(*bool),
             Literal::Int(int) => Value::Int(*int),
             Literal::Float(float) => Value::Float(*float),
@@ -235,6 +239,7 @@ impl Expr {
 
 fn call(data: &Data, state: &mut State, function_id: usize, parameters: &Vec<Expr>, instance: Option<Value>) -> Option<Value> {
    let function = &data.functions[function_id];
+   assert!(function.parameters.len() == parameters.len() + if instance.is_some() { 1 } else { 0 });
    let new_variables_begin = state.variables.len();
    if let Some(instance) = instance {
       state.variables.push(instance);

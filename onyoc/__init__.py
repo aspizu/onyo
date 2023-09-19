@@ -11,6 +11,27 @@ Tree = lark.Tree[lark.lexer.Token]
 Node = Tree | lark.lexer.Token
 
 parser = lark.Lark((files(res) / "grammar.lark").read_text(), parser="earley", propagate_positions=True)
+parser_keep_all_tokens = lark.Lark(
+   (files(res) / "grammar.lark").read_text(),
+   parser="earley",
+   propagate_positions=True,
+   keep_all_tokens=True,
+   start="start",
+)
+parser_keep_all_tokens_raw_block = lark.Lark(
+   (files(res) / "grammar.lark").read_text(),
+   parser="earley",
+   propagate_positions=True,
+   keep_all_tokens=True,
+   start="raw_block",
+)
+parser_keep_all_tokens_expr = lark.Lark(
+   (files(res) / "grammar.lark").read_text(),
+   parser="earley",
+   propagate_positions=True,
+   keep_all_tokens=True,
+   start="expr",
+)
 
 
 def optional_list(l: list[Any]):

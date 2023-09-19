@@ -24,7 +24,7 @@ is trivial to parse a lisp-like syntax.
 - <https://web.archive.org/web/20190307204217/https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm>
 - <https://en.wikipedia.org/wiki/S-expression>
 
-```lisp
+```
 (+ A (* B C))
 ```
 
@@ -83,7 +83,7 @@ for hash maps were helpful.
 
 # Language Reference
 
-## Contents
+#### Contents
 
 - [Data Types](#data-types)
   - [Tuples](#tuples)
@@ -101,45 +101,30 @@ for hash maps were helpful.
 
 # Data Types
 
-| Name    | Description                                               |
-| ------- | --------------------------------------------------------- |
-| `nil`   | The null type has the only value `null`.                  |
-| `err`   | Err is used to return errors, it can contain any value.   |
-| `bool`  | The bool type has two values, `true` or `false`.          |
-| `int`   | Signed integers, equal to `i64` in Rust.                  |
-| `float` | Double precession floating point, equal to `f64` in Rust. |
-| `str`   | Immutable string.                                         |
-| `tuple` | Immutable array of values.                                |
-| `list`  | Mutable dynamic array of values.                          |
-| `dict`  | Hash table with str keys.                                 |
-
-## Tuples
-
-```lua
-tup = {1, 2, 3}
-print(tup[0])
-print(len(tup))
-print(index(tup, 2))
-i = 0
-while i < len(tup) {
-    print(tup[i])
-    i += 1
-}
-```
+| Name      | Description                                               |
+| --------- | --------------------------------------------------------- |
+| `nil`     | The null type has the only value `null`.                  |
+| `iterend` | Marks the end of a iterator.                              |
+| `err`     | Err is used to return errors, it can contain any value.   |
+| `bool`    | The bool type has two values, `true` or `false`.          |
+| `int`     | Signed integers, equal to `i64` in Rust.                  |
+| `float`   | Double precession floating point, equal to `f64` in Rust. |
+| `str`     | Immutable string.                                         |
+| `list`    | Mutable dynamic array of values.                          |
 
 ## Lists
 
-```py
+```onyo
 a = [1, 2, 3]
 push(a, 4)
-a[2] = "Hello"
+;a[2] = "Hello"
 print(a[2])
 value = remove(a, len(a) - 1)
 print(index(a, 2))
 i = 0
 while i < len(a) {
-    print(a[i])
-    i += 1
+   print(a[i])
+   i = i + 1
 }
 ```
 
@@ -147,41 +132,44 @@ while i < len(a) {
 
 ## Comments
 
-```asm
+```onyo
 ; Single-line comments.
 ; There are no multi-line comments.
 ```
 
 ## Functions
 
-Functions are defined using the `🧅` keyword (This keyword is optional and can be ommited).
-
-```lua
-🧅 function_name(arguments, etc) {
-  ; ...
-}
-
-; Will work aswell
+```onyo
 function_name(arguments, etc) {
-  ; ...
+   ; ...
 }
 ```
 
 ### Calling functions
 
-```py
+```onyo
 result = function()
 ```
 
-```py
+```onyo
 function()
 ```
 
 ### Returning values
 
-```lua
+```onyo
 return value
 ```
+
+Bare returns are not possible because the syntax avoids semi-colons.
+
+An explicit
+
+```onyo
+return nil
+```
+
+must be used.
 
 Functions implicitly return `nil`.
 
@@ -189,46 +177,57 @@ Functions implicitly return `nil`.
 
 Must be present in every program. Takes no arguments.
 
-```lua
+```onyo
 main() {
-  ; ...
+   ; ...
 }
 ```
 
 ## Structs
 
+Structs are called classes in other programming languages. They can contain fields which hold values and methods with an
+implicit `self` parameter.
+
 Struct fields are static, which means that you cannot add a new field to a struct instance at run-time like you could do in
 Javascript.
 
-```lua
-Name {
-  field1
-  field2
+```onyo
+Person {
+   name, age
+
+   greet(self) {
+      return "Hello, " + self.name + "!"
+   }
 }
-
-Person { name, age }
 ```
 
-```lua
-bdfl = Person { name = "aspizu", 18 }
+```onyo
+bdfl = Person { name = "aspizu", age = 18 }
 friend =
-  Person {
-    name = "friend"
-    age = 17
-  }
+   Person {
+      name = "friend",
+      age = 17
+   }
+print(bdfl.greet())
 ```
 
-The commas in struct definitions and literals are optional.
+#### Instance method binding behaviour
 
-```lua
-print(bdfl.name)
+When a method is accessed on a struct instance, a bound method value is created. A bound method holds a reference to the
+corresponding instance. When it is called, the instance is passed as the first parameter automatically.
+
+```onyo
+bound_method = bdfl.greet
+print(bound_method()) ; Note that this does not require passing `bdfl` as an parameter.
 ```
+
+Currently there is no way to get the instance from a lone bound method, unless the method returns `self` ofcourse.
 
 ## Variables
 
-Uninitialized variables are set to null. There are no global variables.
+Uninitialized variables are set to `nil`. There are no global variables.
 
-```lua
+```
 name = value
 name += value
 name -= value
@@ -239,21 +238,38 @@ name %= value
 
 ## Conditions
 
-```lua
+```onyo
 if condition {
-  ; ...
+   ; ...
 } elif condition {
-  ; ...
+   ; ...
 } else {
-  ; ...
+   ; ...
 }
 ```
 
-## Loops
+## While and Do While loops
 
-```py
+```onyo
 while condition {
-  ; ...
+   ; ...
+}
+```
+
+# Iterators
+
+Onyo supports lazy iterators using structs. An iterator struct must define a `.next()` method which either returns a value or
+the special value `iterend`.
+
+See [./examples/tests/itertools.onyo](./examples/tests/itertools.onyo) for various iterator functionality.
+
+## For loop
+
+Iterators can be iterated on using the for loop.
+
+```onyo
+for i in iter([1, 2, 3]) {
+   print(i)
 }
 ```
 
@@ -287,8 +303,7 @@ while condition {
 | `if b then a else c` | If b then a else c.                                                  |
 | `var := val`         | Set var to val and return val.                                       |
 
-For the arithmetic operators, if any one of the operands is a float, the result will
-be a float.
+For the arithmetic operators, if any one of the operands is a float, the result will be a float.
 
 ## Type Errors
 
@@ -314,6 +329,6 @@ All operators return `nil` on type errors. Operators do not coerce types.
 | `read(file_path)`           | Return the contents of file at `file_path` as a `str`, returns a `err(str)` on failure.     |
 | `write(file_path, data)`    | Writes `data` into file at `file_path`, returns a `err(str)`on failure or`true` on success. |
 
-Iterable means either a str, tuple, list or dict's values.
+Iterable means either a str, list.
 
 The type conversion functions return `nil` if the value cannot be converted.

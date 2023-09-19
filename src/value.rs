@@ -12,6 +12,7 @@ pub struct Struct {
 #[derive(Debug, Clone)]
 pub enum Value {
    Nil,
+   IterEnd,
    Err(Box<Value>),
    Bool(bool),
    Int(i64),
@@ -66,6 +67,7 @@ impl From<String> for Value {
 }
 
 static TYPE_NAME_NIL: &str = "nil";
+static TYPE_NAME_ITEREND: &str = "iterend";
 static TYPE_NAME_ERR: &str = "err";
 static TYPE_NAME_BOOL: &str = "bool";
 static TYPE_NAME_INT: &str = "int";
@@ -78,6 +80,7 @@ static TYPE_NAME_FUNCTION: &str = "function";
 // Cache for the values returned by the type name operator.
 thread_local! {
    static TYPE_NAME_NIL_VALUE: Value = TYPE_NAME_NIL.into();
+   static TYPE_NAME_ITEREND_VALUE: Value = TYPE_NAME_ITEREND.into();
    static TYPE_NAME_ERR_VALUE: Value = TYPE_NAME_ERR.into();
    static TYPE_NAME_BOOL_VALUE: Value = TYPE_NAME_BOOL.into();
    static TYPE_NAME_INT_VALUE: Value = TYPE_NAME_INT.into();
@@ -109,6 +112,7 @@ impl Value {
    pub fn fmt(&self, data: &Data, into: &mut String) {
       match self {
          Value::Nil => write!(into, "{TYPE_NAME_NIL}").unwrap(),
+         Value::IterEnd => write!(into, "{TYPE_NAME_ITEREND}").unwrap(),
          Value::Bool(true) => write!(into, "true").unwrap(),
          Value::Bool(false) => write!(into, "false").unwrap(),
          Value::Err(err) => err.fmt(data, into),
@@ -142,7 +146,7 @@ impl Value {
    /// Must be used to use Value's as conditions.
    pub fn is_truthy(&self) -> bool {
       match self {
-         Value::Nil | Value::Err(_) | Value::Bool(false) => false,
+         Value::Nil | Value::IterEnd | Value::Err(_) | Value::Bool(false) => false,
          _ => true
       }
    }
@@ -401,6 +405,7 @@ impl Value {
    pub fn typename(self, data: &Data) -> Value {
       match self {
          Value::Nil => TYPE_NAME_NIL_VALUE.with(|v| v.clone()),
+         Value::IterEnd => TYPE_NAME_ITEREND_VALUE.with(|v| v.clone()),
          Value::Err(..) => TYPE_NAME_ERR_VALUE.with(|v| v.clone()),
          Value::Bool(..) => TYPE_NAME_BOOL_VALUE.with(|v| v.clone()),
          Value::Int(..) => TYPE_NAME_INT_VALUE.with(|v| v.clone()),
@@ -541,7 +546,9 @@ impl Value {
    }
 
    pub fn join(&self, data: &Data, other: Value) -> Value {
-      let Value::Str(sep) = other else { return Value::Nil };
+      let Value::Str(sep) = other else {
+         return Value::Nil;
+      };
       match self {
          Value::List(list) => {
             let mut s = String::new();

@@ -4,6 +4,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from . import parser
+from .highlighter import Highlighter
 from .I import I
 
 argparser = argparse.ArgumentParser(
@@ -38,16 +39,23 @@ def type_interpreter_path(argument: str):
    return path
 
 
+argparser.add_argument("--syntax-highlight", action=argparse.BooleanOptionalAction, default=False)
 argparser.add_argument("-i", "--input", help="Source file.", type=type_input, required=True)
 argparser.add_argument("-o", "--output", help="Output json file. Leave empty to run onyo.", type=type_output)
 argparser.add_argument("-p", "--interpreter-path", help="Path to the interpreter executable.", type=type_interpreter_path)
 argparser.add_argument("args", nargs="*", help="Arguments to be passed to the program. Will be ignored if --output is given.")
 args = argparser.parse_args()
+syntax_highlight: bool = args.syntax_highlight
 input_path: Path = args.input
 output_path: Path | None = args.output
 interpreter_path: Path = args.interpreter_path or Path("onyo-rs")
 program_args: list[str] = args.args
-if output_path is None:
+if syntax_highlight:
+   if output_path is None:
+      output_path = Path("/dev/stdout")
+   source = input_path.read_text()
+   highlighter = Highlighter(source, output_path.open("w"))
+elif output_path is None:
    tempfile = NamedTemporaryFile("w", delete=False)
    tempfile_path = Path(tempfile.name)
    source = input_path.read_text()

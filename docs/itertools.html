@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8" />
+<title>itertools.onyo</title>
+<link rel="stylesheet" href="syntax.css" />
+</head>
+<body>
+<pre><code><span class="struct">Iterator</span> <span class="field">{</span>
+   <span class="field">iterable</span><span class="field">,</span> <span class="field">i</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      self.<span class="field">i</span> = self.<span class="field">i</span> + <span class="int">1</span>
+      <span class="keyword">return</span> <span class="keyword">if</span> self.<span class="field">i</span> > <span class="function">len</span>(self.<span class="field">iterable</span>) <span class="keyword">then</span> <span class="iterend">iterend</span> <span class="keyword">else</span> self.<span class="field">iterable</span>[self.<span class="field">i</span> - <span class="int">1</span>]
+   }
+}
+
+<span class="function">iter</span>(<span class="parameter">iterable</span>) {
+   <span class="keyword">return</span> <span class="struct">Iterator</span> { <span class="field">iterable</span> = iterable, <span class="field">i</span> = <span class="int">0</span> }
+}
+
+<span class="function">next_chunk</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">count</span>) {
+   v = []
+   i = <span class="int">0</span>
+   <span class="keyword">while</span> i < count {
+      <span class="function">push</span>(v, iterator.<span class="field">next</span>())
+      i = i + <span class="int">1</span>
+   }
+   <span class="keyword">return</span> v
+}
+
+<span class="function">count</span>(<span class="parameter">iterator</span>) {
+   c = <span class="int">0</span>
+   i = <span class="nil">nil</span>
+   <span class="keyword">for</span> i <span class="keyword">in</span> iterator {
+      c = c + <span class="int">1</span>
+   }
+   <span class="keyword">return</span> c
+}
+
+<span class="function">last</span>(<span class="parameter">iterator</span>) {
+   i = <span class="nil">nil</span>
+   <span class="keyword">for</span> i <span class="keyword">in</span> iterator {}
+   <span class="keyword">return</span> i
+}
+
+<span class="function">skip</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">count</span>) {
+   i = <span class="int">0</span>
+   <span class="keyword">while</span> i < count {
+      next = iterator.<span class="field">next</span>()
+      i = i + <span class="int">1</span>
+   }
+   <span class="keyword">return</span> iterator
+}
+
+<span class="function">nth</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">n</span>) {
+   i = <span class="nil">nil</span>
+   <span class="keyword">for</span> i <span class="keyword">in</span> iterator {
+      <span class="keyword">if</span> n == <span class="int">0</span> {
+         <span class="keyword">return</span> i
+      }
+      n = n - <span class="int">1</span>
+   }
+}
+
+<span class="struct">StepBy</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">step</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      next = self.<span class="field">iterator</span>.<span class="field">next</span>()
+      <span class="keyword">if</span> self.<span class="field">step</span> > <span class="int">1</span> {
+         <span class="function">nth</span>(self.<span class="field">iterator</span>, self.<span class="field">step</span> - <span class="int">2</span>)
+      }
+      <span class="keyword">return</span> next
+   }
+}
+
+<span class="function">step_by</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">step</span>) {
+   <span class="keyword">return</span> <span class="struct">StepBy</span> { <span class="field">iterator</span> = iterator, <span class="field">step</span> = step }
+}
+
+<span class="struct">Chain</span> <span class="field">{</span>
+   <span class="field">iterator1</span><span class="field">,</span> <span class="field">iterator2</span><span class="field">,</span> <span class="field">state</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      <span class="keyword">if</span> self.<span class="field">state</span> {
+         next = self.<span class="field">iterator2</span>.<span class="field">next</span>()
+      } <span class="keyword">else</span> {
+         next = self.<span class="field">iterator1</span>.<span class="field">next</span>()
+         <span class="keyword">if</span> next == <span class="iterend">iterend</span> {
+            self.<span class="field">state</span> = <span class="bool">true</span>
+            next = self.<span class="field">iterator2</span>.<span class="field">next</span>()
+         }
+      }
+      <span class="keyword">return</span> next
+   }
+}
+
+<span class="function">chain</span>(<span class="parameter">iterator1</span><span class="parameter">,</span> <span class="parameter">iterator2</span>) {
+   <span class="keyword">return</span> <span class="struct">Chain</span> { <span class="field">iterator1</span> = iterator1, <span class="field">iterator2</span> = iterator2, <span class="field">state</span> = <span class="bool">false</span> }
+}
+
+<span class="struct">Zip</span> <span class="field">{</span>
+   <span class="field">iterator1</span><span class="field">,</span> <span class="field">iterator2</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      next1 = self.<span class="field">iterator1</span>.<span class="field">next</span>()
+      <span class="keyword">if</span> next1 == <span class="iterend">iterend</span> {
+         <span class="keyword">return</span> next1
+      }
+      next2 = self.<span class="field">iterator2</span>.<span class="field">next</span>()
+      <span class="keyword">if</span> next2 == <span class="iterend">iterend</span> {
+         <span class="keyword">return</span> next2
+      }
+      <span class="keyword">return</span> [next1, next2]
+   }
+}
+
+<span class="function">zip</span>(<span class="parameter">iterator1</span><span class="parameter">,</span> <span class="parameter">iterator2</span>) {
+   <span class="keyword">return</span> <span class="struct">Zip</span> { <span class="field">iterator1</span> = iterator1, <span class="field">iterator2</span> = iterator2 }
+}
+
+<span class="struct">Peekable</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">future</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      <span class="keyword">if</span> self.<span class="field">future</span> != <span class="iterend">iterend</span> {
+         future = self.<span class="field">future</span>
+         self.<span class="field">future</span> = <span class="iterend">iterend</span>
+         <span class="keyword">return</span> future
+      }
+      <span class="keyword">return</span> self.<span class="field">iterator</span>.<span class="field">next</span>()
+   }
+
+   <span class="function">peek</span>(<span class="parameter">self</span>) {
+      <span class="keyword">if</span> self.<span class="field">future</span> == <span class="iterend">iterend</span> {
+         self.<span class="field">future</span> = self.<span class="field">iterator</span>.<span class="field">next</span>()
+      }
+      <span class="keyword">return</span> self.<span class="field">future</span>
+   }
+}
+
+<span class="function">peekable</span>(<span class="parameter">iterator</span>) {
+   <span class="keyword">return</span> <span class="struct">Peekable</span> { <span class="field">iterator</span> = iterator, <span class="field">future</span> = <span class="iterend">iterend</span> }
+}
+
+<span class="struct">Intersperse</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">separator</span><span class="field">,</span> <span class="field">state</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      <span class="keyword">if</span> self.<span class="field">state</span> {
+         self.<span class="field">state</span> = <span class="bool">false</span>
+         <span class="keyword">if</span> self.<span class="field">iterator</span>.<span class="field">peek</span>() == <span class="iterend">iterend</span> {
+            <span class="keyword">return</span> <span class="iterend">iterend</span>
+         }
+         <span class="keyword">return</span> self.<span class="field">separator</span>
+      } <span class="keyword">else</span> {
+         next = self.<span class="field">iterator</span>.<span class="field">next</span>()
+         self.<span class="field">state</span> = <span class="bool">true</span>
+         <span class="keyword">return</span> next
+      }
+   }
+}
+
+<span class="function">intersperse</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">separator</span>) {
+   <span class="keyword">return</span> <span class="struct">Intersperse</span> { <span class="field">iterator</span> = <span class="function">peekable</span>(iterator), <span class="field">separator</span> = separator, <span class="field">state</span> = <span class="bool">false</span> }
+}
+
+<span class="struct">Map</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">func</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      next = self.<span class="field">iterator</span>.<span class="field">next</span>()
+      <span class="keyword">return</span> <span class="keyword">if</span> next == <span class="iterend">iterend</span> <span class="keyword">then</span> next <span class="keyword">else</span> self.<span class="field">func</span>(next)
+   }
+}
+
+<span class="function">map</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   <span class="keyword">return</span> <span class="struct">Map</span> { <span class="field">iterator</span> = iterator, <span class="field">func</span> = func }
+}
+
+<span class="struct">Filter</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">func</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      <span class="keyword">while</span> <span class="bool">true</span> {
+         next = self.<span class="field">iterator</span>.<span class="field">next</span>()
+         <span class="keyword">if</span> next == <span class="iterend">iterend</span> <span class="operator">or</span> self.<span class="field">func</span>(next) {
+            <span class="keyword">return</span> next
+         }
+      }
+   }
+}
+
+<span class="function">filter</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   <span class="keyword">return</span> <span class="struct">Filter</span> { <span class="field">iterator</span> = iterator, <span class="field">func</span> = func }
+}
+
+<span class="function">find</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   <span class="keyword">return</span> <span class="function">filter</span>(iterator, func).<span class="field">next</span>()
+}
+
+<span class="struct">Enumerate</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">i</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      next = self.<span class="field">iterator</span>.<span class="field">next</span>()
+      <span class="keyword">if</span> next == <span class="iterend">iterend</span> {
+         <span class="keyword">return</span> next
+      }
+      self.<span class="field">i</span> = self.<span class="field">i</span> + <span class="int">1</span>
+      <span class="keyword">return</span> [self.<span class="field">i</span> - <span class="int">1</span>, next]
+   }
+}
+
+<span class="function">enumerate</span>(<span class="parameter">iterator</span>) {
+   <span class="keyword">return</span> <span class="struct">Enumerate</span> { <span class="field">iterator</span> = iterator, <span class="field">i</span> = <span class="int">0</span> }
+}
+
+<span class="struct">SkipWhile</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">func</span><span class="field">,</span> <span class="field">state</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      <span class="keyword">if</span> self.<span class="field">state</span> {
+         <span class="keyword">return</span> self.<span class="field">iterator</span>.<span class="field">next</span>()
+      }
+      <span class="keyword">while</span> <span class="bool">true</span> {
+         next = self.<span class="field">iterator</span>.<span class="field">next</span>()
+         <span class="keyword">if</span> next == <span class="iterend">iterend</span> {
+            <span class="keyword">return</span> next
+         }
+         <span class="keyword">if</span> <span class="operator">not</span> self.<span class="field">func</span>(next) {
+            self.<span class="field">state</span> = <span class="bool">true</span>
+            <span class="keyword">return</span> next
+         }
+      }
+   }
+}
+
+<span class="function">skip_while</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   <span class="keyword">return</span> <span class="struct">SkipWhile</span> { <span class="field">iterator</span> = iterator, <span class="field">func</span> = func, <span class="field">state</span> = <span class="bool">false</span> }
+}
+
+<span class="struct">TakeWhile</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">func</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      next = self.<span class="field">iterator</span>.<span class="field">next</span>()
+      <span class="keyword">if</span> next == <span class="iterend">iterend</span> <span class="operator">or</span> <span class="operator">not</span> self.<span class="field">func</span>(next) {
+         <span class="keyword">return</span> <span class="iterend">iterend</span>
+      }
+      <span class="keyword">return</span> next
+   }
+}
+
+<span class="function">take_while</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   <span class="keyword">return</span> <span class="struct">TakeWhile</span> { <span class="field">iterator</span> = iterator, <span class="field">func</span> = func }
+}
+
+<span class="struct">Take</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">count</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      self.<span class="field">count</span> = self.<span class="field">count</span> - <span class="int">1</span>
+      <span class="keyword">if</span> self.<span class="field">count</span> < <span class="int">0</span> {
+         <span class="keyword">return</span> <span class="iterend">iterend</span>
+      }
+      <span class="keyword">return</span> self.<span class="field">iterator</span>.<span class="field">next</span>()
+   }
+}
+
+<span class="function">take</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">count</span>) {
+   <span class="keyword">return</span> <span class="struct">Take</span> { <span class="field">iterator</span> = iterator, <span class="field">count</span> = count }
+}
+
+<span class="struct">Flatten</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">current</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      next = self.<span class="field">current</span>.<span class="field">next</span>()
+      <span class="keyword">if</span> next == <span class="iterend">iterend</span> {
+         self.<span class="field">current</span> = self.<span class="field">iterator</span>.<span class="field">next</span>()
+         <span class="keyword">if</span> self.<span class="field">current</span> == <span class="iterend">iterend</span> {
+            <span class="keyword">return</span> <span class="iterend">iterend</span>
+         }
+         <span class="keyword">return</span> self.<span class="field">next</span>()
+      }
+      <span class="keyword">return</span> next
+   }
+}
+
+<span class="function">flatten</span>(<span class="parameter">iterator</span>) {
+   <span class="keyword">return</span> <span class="struct">Flatten</span> { <span class="field">iterator</span> = iterator, <span class="field">current</span> = iterator.<span class="field">next</span>() }
+}
+
+<span class="struct">Inspect</span> <span class="field">{</span>
+   <span class="field">iterator</span><span class="field">,</span> <span class="field">func</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      next = self.<span class="field">iterator</span>.<span class="field">next</span>()
+      <span class="keyword">if</span> next != <span class="iterend">iterend</span> {
+         eval self.<span class="field">func</span>(next)
+      }
+      <span class="keyword">return</span> next
+   }
+}
+
+<span class="function">inspect</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   <span class="keyword">return</span> <span class="struct">Inspect</span> { <span class="field">iterator</span> = iterator, <span class="field">func</span> = func }
+}
+
+<span class="function">collect</span>(<span class="parameter">iterator</span>) {
+   i = <span class="nil">nil</span>
+   v = []
+   <span class="keyword">for</span> i <span class="keyword">in</span> iterator {
+      <span class="function">push</span>(v, i)
+   }
+   <span class="keyword">return</span> v
+}
+
+<span class="function">collect_into</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">collection</span>) {
+   i = <span class="nil">nil</span>
+   <span class="keyword">for</span> i <span class="keyword">in</span> iterator {
+      <span class="function">push</span>(collection, i)
+   }
+   <span class="keyword">return</span> collection
+}
+
+<span class="function">fold</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">init</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   i = <span class="nil">nil</span>
+   acc = init
+   <span class="keyword">for</span> i <span class="keyword">in</span> iterator {
+      acc = <span class="function">func</span>(acc, i)
+   }
+   <span class="keyword">return</span> acc
+}
+
+<span class="function">reduce</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   <span class="keyword">return</span> <span class="function">fold</span>(iterator, iterator.<span class="field">next</span>(), func)
+}
+
+<span class="function">all</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   i = <span class="nil">nil</span>
+   <span class="keyword">for</span> i <span class="keyword">in</span> iterator {
+      <span class="keyword">if</span> <span class="operator">not</span> <span class="function">func</span>(i) {
+         <span class="keyword">return</span> <span class="bool">false</span>
+      }
+   }
+   <span class="keyword">return</span> <span class="bool">true</span>
+}
+
+<span class="function">any</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   i = <span class="nil">nil</span>
+   <span class="keyword">for</span> i <span class="keyword">in</span> iterator {
+      <span class="keyword">if</span> <span class="function">func</span>(i) {
+         <span class="keyword">return</span> <span class="bool">true</span>
+      }
+   }
+   <span class="keyword">return</span> <span class="bool">false</span>
+}
+
+<span class="function">position</span>(<span class="parameter">iterator</span><span class="parameter">,</span> <span class="parameter">func</span>) {
+   i = <span class="nil">nil</span>
+   <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">enumerate</span>(iterator) {
+      <span class="keyword">if</span> <span class="function">func</span>(i[<span class="int">1</span>]) {
+         <span class="keyword">return</span> i[<span class="int">0</span>]
+      }
+   }
+}
+
+<span class="struct">Range</span> <span class="field">{</span>
+   <span class="field">i</span><span class="field">,</span> <span class="field">end</span><span class="field">,</span> <span class="field">step</span>
+
+   <span class="function">next</span>(<span class="parameter">self</span>) {
+      self.<span class="field">i</span> = self.<span class="field">i</span> + self.<span class="field">step</span>
+      <span class="keyword">return</span> <span class="keyword">if</span> self.<span class="field">i</span> > self.<span class="field">end</span> <span class="keyword">then</span> <span class="iterend">iterend</span> <span class="keyword">else</span> self.<span class="field">i</span> - self.<span class="field">step</span>
+   }
+}
+
+<span class="function">range</span>(<span class="parameter">start</span><span class="parameter">,</span> <span class="parameter">end</span><span class="parameter">,</span> <span class="parameter">step</span>) {
+   <span class="keyword">return</span> <span class="struct">Range</span> { <span class="field">i</span> = start, <span class="field">end</span> = end, <span class="field">step</span> = step }
+}
+
+<span class="function">main</span>() {
+   <span class="function">join</span>(<span class="function">intersperse</span>(<span class="function">iter</span>([<span class="str">"One"</span>, <span class="str">"Two"</span>, <span class="str">"Three"</span>]), <span class="str">", "</span>), <span class="str">""</span>)
+}
+</pre></code>
+</body>
+</html>

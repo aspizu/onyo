@@ -40,6 +40,7 @@ pub struct Function {
 #[derive(Debug, Deserialize)]
 pub enum Literal {
    Nil,
+   IterEnd,
    Bool(bool),
    Int(i64),
    Float(f64),

@@ -1,0 +1,61 @@
+; Simple Markdown compiler using Recursive descent parsing.
+
+Parser {
+   source, i
+
+   expect(self, text) {
+      i = 0
+      while i < len(text) {
+         if self.source[self.i+i] != text[i] {
+            return false
+         }
+         i = i + 1
+      }
+      self.i = self.i + len(text)
+      return true
+   }
+
+   whitespace(self) {
+      while self.expect(" ") {}
+   }
+
+   line(self) {
+      if self.i > len(self.source) { return nil }
+      s = ""
+      while self.i < len(self.source) and self.source[self.i] != "\n" {
+         s = s + self.source[self.i]
+         self.i = self.i + 1
+      }
+      self.i = self.i + 1
+      return s
+   }
+
+   hN(self, N) {
+      if not self.expect("#" * N) { return nil }
+      eval self.whitespace()
+      return "<h"+ str(N) +">" + self.line() + "</h" + str(N) + ">" 
+   }
+
+   codeblock(self) {
+      if not self.expect("```") { return nil }
+      lang = self.line()
+      s = "<pre><code class=\"language-" + lang + "\">"
+      while (v := self.line()) != "```" {
+         s = s + v + "\n"
+      }
+      return s + "</code></pre>"
+   }
+
+   start(self) {
+      s = ""
+      while v := self.hN(4) or self.hN(3) or self.hN(2) or self.hN(1) or self.codeblock() or self.line() {
+         s = s + v + "\n"
+      }
+      return s
+   }
+}
+
+main() {
+   parser = Parser { source = read("README.md"), i = 0 }
+   print(parser.start())
+}

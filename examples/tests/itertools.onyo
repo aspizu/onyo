@@ -1,0 +1,379 @@
+Iterator {
+   iterable, i
+
+   next(self) {
+      self.i = self.i + 1
+      return if self.i > len(self.iterable) then iterend else self.iterable[self.i - 1]
+   }
+}
+
+iter(iterable) {
+   return Iterator { iterable = iterable, i = 0 }
+}
+
+next_chunk(iterator, count) {
+   v = []
+   i = 0
+   while i < count
+   {
+      push(v, iterator.next())
+      i = i + 1
+   }
+   return v
+}
+
+count(iterator) {
+   c = 0
+   i = nil
+   for i in iterator {
+      c = c + 1
+   }
+   return c
+}
+
+last(iterator) {
+   i = nil
+   for i in iterator {}
+   return i
+}
+
+skip(iterator, count) {
+   i = 0
+   while i < count {
+      next = iterator.next()
+      i = i + 1
+   }
+   return iterator
+}
+
+nth(iterator, n) {
+   i = nil
+   for i in iterator {
+      if n == 0 {
+         return i
+      }
+      n = n - 1
+   }
+}
+
+StepBy {
+   iterator, step
+
+   next(self) {
+      next = self.iterator.next()
+      if self.step > 1 {
+         nth(self.iterator, self.step - 2)
+      }
+      return next
+   }
+}
+
+step_by(iterator, step) {
+   return StepBy { iterator = iterator, step = step }
+}
+
+Chain {
+   iterator1, iterator2, state
+
+   next(self) {
+      if self.state {
+         next = self.iterator2.next()
+      } else {
+         next = self.iterator1.next()
+         if next == iterend {
+            self.state = true
+            next = self.iterator2.next()
+         }
+      }
+      return next
+   }
+}
+
+chain(iterator1, iterator2) {
+   return Chain { iterator1 = iterator1, iterator2 = iterator2, state = false }
+}
+
+Zip {
+   iterator1, iterator2
+
+   next(self) {
+      next1 = self.iterator1.next()
+      if next1 == iterend {
+         return next1
+      }
+      next2 = self.iterator2.next()
+      if next2 == iterend {
+         return next2
+      }
+      return [next1, next2]
+   }
+}
+
+zip(iterator1, iterator2) {
+   return Zip { iterator1 = iterator1, iterator2 = iterator2 }
+}
+
+Peekable {
+   iterator, future
+
+   next(self) {
+      if self.future != iterend {
+         future = self.future
+         self.future = iterend
+         return future
+      }
+      return self.iterator.next()
+   }
+
+   peek(self) {
+      if self.future == iterend {
+         self.future = self.iterator.next()
+      }
+      return self.future
+   }
+}
+
+peekable(iterator) {
+   return Peekable { iterator = iterator, future = iterend }
+}
+
+Intersperse {
+   iterator, separator, state
+
+   next(self) {
+      if self.state {
+         self.state = false
+         if self.iterator.peek() == iterend {
+            return iterend
+         }
+         return self.separator
+      } else {
+         next = self.iterator.next()
+         self.state = true
+         return next
+      }
+   }
+}
+
+intersperse(iterator, separator) {
+   return Intersperse { iterator = peekable(iterator), separator = separator, state = false }
+}
+
+Map {
+   iterator, func
+
+   next(self) {
+      next = self.iterator.next()
+      return if next == iterend then next else self.func(next)
+   }
+}
+
+map(iterator, func) {
+   return Map { iterator = iterator, func = func }
+}
+
+Filter {
+   iterator, func
+
+   next(self) {
+      while true {
+         next = self.iterator.next()
+         if next == iterend or self.func(next) {
+            return next
+         }
+      }
+   }
+}
+
+filter(iterator, func) {
+   return Filter { iterator = iterator, func = func }
+}
+
+find(iterator, func) {
+   return filter(iterator, func).next()
+}
+
+Enumerate {
+   iterator, i
+
+   next(self) {
+      next = self.iterator.next()
+      if next == iterend {
+         return next
+      }
+      self.i = self.i + 1
+      return [self.i - 1, next]
+   }
+}
+
+enumerate(iterator) {
+   return Enumerate { iterator = iterator, i = 0 }
+}
+
+SkipWhile {
+   iterator, func, state
+
+   next(self) {
+      if self.state {
+         return self.iterator.next()
+      }
+      while true {
+         next = self.iterator.next()
+         if next == iterend {
+            return next
+         }
+         if not self.func(next) {
+            self.state = true
+            return next
+         }
+      }
+   }
+}
+
+skip_while(iterator, func) {
+   return SkipWhile { iterator = iterator, func = func, state = false }
+}
+
+TakeWhile {
+   iterator, func
+
+   next(self) {
+      next = self.iterator.next()
+      if next == iterend or not self.func(next) {
+         return iterend
+      }
+      return next
+   }
+}
+
+take_while(iterator, func) {
+   return TakeWhile { iterator = iterator, func = func }
+}
+
+Take {
+   iterator, count
+
+   next(self) {
+      self.count = self.count - 1
+      if self.count < 0 {
+         return iterend
+      }
+      return self.iterator.next()
+   }
+}
+
+take(iterator, count) {
+   return Take { iterator = iterator, count = count }
+}
+
+Flatten {
+   iterator, current
+
+   next(self) {
+      next = self.current.next()
+      if next == iterend {
+         self.current = self.iterator.next()
+         if self.current == iterend {
+            return iterend
+         }
+         return self.next()
+      }
+      return next
+   }
+}
+
+flatten(iterator) {
+   return Flatten { iterator = iterator, current = iterator.next() }
+}
+
+Inspect {
+   iterator, func
+
+   next(self) {
+      next = self.iterator.next()
+      if next != iterend {
+         eval self.func(next)
+      }
+      return next
+   }
+}
+
+inspect(iterator, func) {
+   return Inspect { iterator = iterator, func = func }
+}
+
+collect(iterator) {
+   i = nil
+   v = []
+   for i in iterator {
+      push(v, i)
+   }
+   return v
+}
+
+collect_into(iterator, collection) {
+   i = nil
+   for i in iterator {
+      push(collection, i)
+   }
+   return collection
+}
+
+fold(iterator, init, func) {
+   i = nil
+   acc = init
+   for i in iterator {
+      acc = func(acc, i)
+   }
+   return acc
+}
+
+reduce(iterator, func) {
+   return fold(iterator, iterator.next(), func)
+}
+
+all(iterator, func) {
+   i = nil
+   for i in iterator {
+      if not func(i) {
+         return false
+      }
+   }
+   return true
+}
+
+any(iterator, func) {
+   i = nil
+   for i in iterator {
+      if func(i) {
+         return true
+      }
+   }
+   return false
+}
+
+position(iterator, func) {
+   i = nil
+   for i in enumerate(iterator) {
+      if func(i[1]) {
+         return i[0]
+      }
+   }
+}
+
+Range {
+   i, end, step
+
+   next(self) {
+      self.i = self.i + self.step
+      return if self.i > self.end then iterend else self.i - self.step
+   }
+}
+
+range(start, end, step) {
+   return Range { i = start, end = end, step = step }
+}
+
+main() {
+   join(intersperse(iter(["One", "Two", "Three"]), ", "), "")
+}

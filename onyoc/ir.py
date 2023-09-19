@@ -29,7 +29,7 @@ class ReservedIdents(Struct_):
 
    @staticmethod
    def from_ident_map(ident_map: dict[str, int]):
-      return ReservedIdents(next=ident_map["next"])
+      return ReservedIdents(next=ident_map.get("next", 0))
 
 
 @dataclass
@@ -50,6 +50,10 @@ class Prototype(Struct_):
 class Literal(ExternallyTaggedEnum):
    @dataclass
    class Nil(LiteralT, ValueEnum):
+      _: None = None
+
+   @dataclass
+   class IterEnd(LiteralT, ValueEnum):
       _: None = None
 
    @dataclass

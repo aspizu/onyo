@@ -34,8 +34,16 @@
       "match": "\\b(do|while|for|in|if|then|elif|else|return|eval)\\b"
     },
     {
+      "name": "constant.language",
+      "match": "\\b(true|false|nil|iterend)\\b"
+    },
+    {
       "name": "entity.name.class",
       "match": "[_a-zA-Z][_a-zA-Z0-9]*[\\s\\n]*\\{"
+    },
+    {
+      "name": "entity.name.class",
+      "match": "\\bself\\b"
     },
     {
       "name": "constant.numeric",
