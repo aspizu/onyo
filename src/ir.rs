@@ -158,5 +158,7 @@ pub enum Expr {
    Struct { prototype: usize, values: Vec<Expr> },
    SetVar { variable: Reference, expr: Box<Expr> },
    SetField { instance: Box<Expr>, field_id: usize, value: Box<Expr> },
-   GetField { instance: Box<Expr>, field_id: usize }
+   GetField { instance: Box<Expr>, field_id: usize },
+   Die { expr: Box<Expr> },
+   OrDie { expr: Box<Expr> }
 }

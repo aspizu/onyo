@@ -210,6 +210,14 @@ class V(Transformer[Token, Block], ErrorStorage):
       field_qualname = str(field_name)
       return Expr.GetField(instance, self.i.ident_map[field_qualname])
 
+   def die(self, args: tuple[ExprT]):
+      expr = args[0]
+      return Expr.Die(expr)
+
+   def ordie(self, args: tuple[ExprT]):
+      expr = args[0]
+      return Expr.OrDie(expr)
+
    def list(self, args: list[Any]):
       args = optional_list(args)
       return Expr.NaryOperation(NaryOperator.List, args)

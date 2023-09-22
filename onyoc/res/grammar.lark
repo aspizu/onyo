@@ -3,7 +3,7 @@ func: IDENT "(" _identlist ")" block
 structdef: IDENT "{" _identlist func* "}"
 raw_block: exec*
 block: "{" exec* "}"
-exec: assign | whilebranch | forloop | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret | setfield
+exec: assign | whilebranch | forloop | dowhile | call | ifblock | ifelse | ifelif | ifelifelse | execexpr | ret | setfield | die
 ret: "return" expr
 execexpr: "eval" expr
 assign: IDENT "=" expr
@@ -17,6 +17,7 @@ ifelifelse: "if" expr block ("elif" expr block)+ "else" block
 var: IDENT
 expr: NIL | ITEREND | BOOL | INT | FLOAT |  STRING
     | var
+    | ordie
     | IDENT ":=" expr -> assign
     | expr "." IDENT ":=" expr -> setfield
     | branch
@@ -47,7 +48,10 @@ expr: NIL | ITEREND | BOOL | INT | FLOAT |  STRING
     | vcall
     | list
     | struct
+    | die
     | "(" expr ")"
+die: "die" expr
+ordie: expr "or" "die" 
 list: "[" _exprlist "]"
 struct: IDENT "{" [IDENT "=" expr ("," IDENT "=" expr)*] "}"
 branch: "if" expr "then" expr "else" expr

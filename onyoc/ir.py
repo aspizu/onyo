@@ -231,3 +231,11 @@ class Expr(InternallyTaggedEnum):
    class GetField(ExprT, Struct_):
       instance: ExprT
       field_id: int
+
+   @dataclass
+   class Die(ExprT, Struct_):
+      expr: ExprT
+
+   @dataclass
+   class OrDie(ExprT, Struct_):
+      expr: ExprT

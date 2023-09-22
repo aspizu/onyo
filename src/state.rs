@@ -1,4 +1,4 @@
-use std::{cell::RefCell, iter::repeat, ops::Drop, rc::Rc};
+use std::{cell::RefCell, iter::repeat, ops::Drop, process::exit, rc::Rc};
 
 use crate::{ir::*, value::*};
 
@@ -13,6 +13,13 @@ pub struct State {
 impl State {
    pub fn new() -> Self {
       Self { variables: vec![], variables_begin: 0 }
+   }
+
+   pub fn die(&mut self, data: &Data, value: Value) -> ! {
+      let mut into = String::new();
+      value.fmt(data, &mut into);
+      println!("die: {into}");
+      exit(1)
    }
 }
 
@@ -159,6 +166,18 @@ impl Expr {
       value
    }
 
+   fn die(data: &Data, state: &mut State, expr: &Expr) -> ! {
+      let err = expr.eval(data, state);
+      state.die(data, err)
+   }
+
+   fn or_die(data: &Data, state: &mut State, expr: &Expr) -> Value {
+      match expr.eval(data, state) {
+         Value::Err(err) => state.die(data, Value::Err(err)),
+         a => return a
+      }
+   }
+
    fn call(data: &Data, state: &mut State, callable: &Expr, parameters: &Vec<Expr>) -> Value {
       let callable = callable.eval(data, state);
       if let Value::Struct(instance) = &callable {
@@ -241,7 +260,9 @@ impl Expr {
          },
          Expr::Struct { prototype, values } => Expr::make_struct(prototype, values, data, state),
          Expr::SetField { instance, field_id, value } => Expr::set_field(value, data, state, instance, field_id),
-         Expr::GetField { instance, field_id } => instance.eval(data, state).get_field(data, *field_id)
+         Expr::GetField { instance, field_id } => instance.eval(data, state).get_field(data, *field_id),
+         Expr::Die { expr } => Expr::die(data, state, expr),
+         Expr::OrDie { expr } => Expr::or_die(data, state, expr)
       }
    }
 }
