@@ -159,6 +159,20 @@ impl Expr {
       value
    }
 
+   fn call(data: &Data, state: &mut State, callable: &Expr, parameters: &Vec<Expr>) -> Value {
+      let callable = callable.eval(data, state);
+      if let Value::Struct(instance) = &callable {
+         let function_id = data.prototypes[instance.borrow().prototype].method_map[&data.reserved_idents.__call__];
+         return call(data, state, function_id, parameters, Some(Value::Struct(instance.clone()))).unwrap_or(Value::Nil);
+      }
+      match callable {
+         Value::Function(function_id) => call(data, state, function_id, parameters, None).unwrap_or(Value::Nil),
+         Value::Method { function_id, instance } =>
+            call(data, state, function_id, parameters, Some(Value::Struct(instance))).unwrap_or(Value::Nil),
+         _ => Value::new_err("NotCallable")
+      }
+   }
+
    fn eval(&self, data: &Data, state: &mut State) -> Value {
       match self {
          Expr::Literal { literal } => match literal {
@@ -219,12 +233,7 @@ impl Expr {
          Expr::NaryOperation { operator, parameters } => match operator {
             NaryOperator::List => Expr::make_list(parameters, data, state)
          },
-         Expr::Call { callable, parameters } => match callable.eval(data, state) {
-            Value::Function(function_id) => call(data, state, function_id, parameters, None).unwrap_or(Value::Nil),
-            Value::Method { function_id, instance } =>
-               call(data, state, function_id, parameters, Some(Value::Struct(instance))).unwrap_or(Value::Nil),
-            _ => Value::new_err("NotCallable")
-         },
+         Expr::Call { callable, parameters } => Expr::call(data, state, callable, parameters),
          Expr::SetVar { variable, expr } => {
             let value = expr.eval(data, state);
             Expr::set_variable(state, variable, &value);

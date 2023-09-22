@@ -16,7 +16,8 @@ pub struct Data {
 
 #[derive(Debug, Deserialize)]
 pub struct ReservedIdents {
-   pub next: usize
+   pub next: usize,
+   pub __call__: usize
 }
 
 #[derive(Debug, Deserialize)]

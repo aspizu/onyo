@@ -16,7 +16,7 @@ class I(Interpreter[Token, None], ErrorStorage):
 
    def func(self, node: Tree, qualprefix: str | None = None) -> int:
       name = cast(Token, node.children[0])
-      parameters = optional_list(node.children[1:-2])
+      parameters = optional_list(node.children[1:-1])
       body = cast(Tree, node.children[-1])
       qualname = qualprefix + str(name) if qualprefix else str(name)
       qualparameters = [str(i) for i in parameters]
@@ -41,7 +41,8 @@ class I(Interpreter[Token, None], ErrorStorage):
             method_map[id] = self.func(current, qualname + ".")
          else:
             field_name = current
-            _field_type = next(it)
+            if field_name is None:  # type: ignore
+               continue
             field_qualname = str(field_name)
             id = self.ident_map.get(field_qualname)
             if id is None:

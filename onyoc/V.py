@@ -147,13 +147,13 @@ class V(Transformer[Token, Block], ErrorStorage):
    def elsegen(self, args: list[Any], otherwise: list[Any] | None):
       return Exec.Branch(args[0], args[1], [self.elsegen(args[2:], otherwise)] if len(args) > 2 else (otherwise or []))
 
-   def assign(self, args: tuple[Token, None, ExprT]):
+   def assign(self, args: tuple[Token, ExprT]):
       name = str(args[0])
       variable = self.variables.get(name)
       if variable is None:
          variable = len(self.variables)
          self.variables[name] = len(self.variables)
-      return Expr.SetVar(Reference.Variable(variable), args[2])
+      return Expr.SetVar(Reference.Variable(variable), args[1])
 
    def neq(self, args: tuple[ExprT, ExprT]):
       return Expr.UnaryOperation(UnaryOperator.Not, self.eq(args))
@@ -191,6 +191,8 @@ class V(Transformer[Token, Block], ErrorStorage):
       it = iter(args[1:])
       values = {}
       for field_name, field_expr in zip(it, it):
+         if field_name is None:
+            continue
          field_qualname = str(field_name)
          values[prototype.field_map[self.i.ident_map[field_qualname]]] = field_expr
       return Expr.Struct(prototype_id, [values[field] for field in prototype.field_map.values()])

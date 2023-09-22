@@ -115,7 +115,11 @@ impl Value {
          Value::IterEnd => write!(into, "{TYPE_NAME_ITEREND}").unwrap(),
          Value::Bool(true) => write!(into, "true").unwrap(),
          Value::Bool(false) => write!(into, "false").unwrap(),
-         Value::Err(err) => err.fmt(data, into),
+         Value::Err(err) => {
+            write!(into, "err(").unwrap();
+            err.fmt(data, into);
+            write!(into, ")").unwrap();
+         },
          Value::Int(int) => write!(into, "{int}").unwrap(),
          Value::Float(float) => write!(into, "{float}").unwrap(),
          Value::Str(str) => write!(into, "\"{str}\"").unwrap(),

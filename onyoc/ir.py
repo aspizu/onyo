@@ -26,10 +26,11 @@ class Data(Struct_):
 @dataclass
 class ReservedIdents(Struct_):
    next: int
+   __call__: int
 
    @staticmethod
    def from_ident_map(ident_map: dict[str, int]):
-      return ReservedIdents(next=ident_map.get("next", 0))
+      return ReservedIdents(next=ident_map.get("next", 0), __call__=ident_map.get("__call__", 0))
 
 
 @dataclass
