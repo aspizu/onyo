@@ -6,6 +6,7 @@ from tempfile import NamedTemporaryFile
 from . import parser
 from .highlighter import Highlighter
 from .I import I
+from .preprocessor import preprocessor
 
 argparser = argparse.ArgumentParser(
    prog="onyoc",
@@ -59,12 +60,12 @@ elif output_path is None:
    tempfile = NamedTemporaryFile("w", delete=False)
    tempfile_path = Path(tempfile.name)
    source = input_path.read_text()
-   root = parser.parse(source)
+   root = parser.parse(preprocessor(source))
    i = I(root)
    if 0 < len(i.errors):
       i.summary(input_path, source)
       exit(1)
-   i.package(tempfile)
+   i.package(input_path.as_posix(), tempfile)
    tempfile.close()
    subprocess.run([interpreter_path.as_posix(), tempfile_path.as_posix(), *program_args])
    tempfile_path.unlink()
@@ -72,4 +73,4 @@ else:
    source = input_path.read_text()
    root = parser.parse(source)
    i = I(root)
-   i.package(output_path.open("w"))
+   i.package(input_path.as_posix(), output_path.open("w"))

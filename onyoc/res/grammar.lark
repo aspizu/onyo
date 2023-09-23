@@ -1,5 +1,6 @@
 start: (func|structdef)*
 func: IDENT "(" _identlist ")" block
+lmbda: "|" _identlist "|" expr
 structdef: IDENT "{" _identlist func* "}"
 raw_block: exec*
 block: "{" exec* "}"
@@ -45,11 +46,16 @@ expr: NIL | ITEREND | BOOL | INT | FLOAT |  STRING
     | getitem
     | getfield
     | call
+    | chain
+    | vchain
     | vcall
     | list
     | struct
     | die
+    | lmbda
     | "(" expr ")"
+chain: expr "->" IDENT "(" _exprlist ")"
+vchain: expr "->" expr "(" _exprlist ")"
 die: "die" expr
 ordie: expr "or" "die" 
 list: "[" _exprlist "]"
@@ -89,6 +95,7 @@ ITEREND: "iterend"
 BOOL: "true" | "false"
 CPP_COMMENT: ";" /[^\n]*/
 C_COMMENT: "/-" /(.|\n)*?/ "-/"
+SHEBANG: "#!" /[^\n]*/
 %import common.ESCAPED_STRING -> STRING
 %import common.CNAME -> IDENT
 %import common.SIGNED_INT -> INT
@@ -97,3 +104,4 @@ C_COMMENT: "/-" /(.|\n)*?/ "-/"
 %ignore WS
 %ignore C_COMMENT
 %ignore CPP_COMMENT
+%ignore SHEBANG

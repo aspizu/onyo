@@ -21,6 +21,15 @@ class Data(Struct_):
    prototypes: list["Prototype"]
    ident_map: dict[int, str]
    reserved_idents: "ReservedIdents"
+   files: list[str]
+
+
+@dataclass
+class IRRange(Struct_):
+   file: int
+   line: int
+   col: int
+   len: int
 
 
 @dataclass
@@ -212,6 +221,11 @@ class Expr(InternallyTaggedEnum):
       parameters: list[ExprT]
 
    @dataclass
+   class Plugin(ExprT, Struct_):
+      id: int
+      parameters: list[ExprT]
+
+   @dataclass
    class Struct(ExprT, Struct_):
       prototype: int
       values: list[ExprT]
@@ -235,7 +249,21 @@ class Expr(InternallyTaggedEnum):
    @dataclass
    class Die(ExprT, Struct_):
       expr: ExprT
+      range: IRRange
 
    @dataclass
    class OrDie(ExprT, Struct_):
       expr: ExprT
+      range: IRRange
+
+
+@dataclass
+class Plugin:
+   id: int
+   name: str
+   parameters: list[str]
+
+
+PLUGINS = {
+   "split": Plugin(0, "split", ["string", "separator"]),
+}

@@ -1,6 +1,6 @@
-mod fixedarray;
 mod ir;
 mod misc;
+mod plugins;
 mod state;
 mod value;
 use std::{env, fs::File, io::BufReader};

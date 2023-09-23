@@ -7,11 +7,12 @@ from lark.visitors import Interpreter
 from . import *
 from .error import ErrorStorage, Range
 from .ir import *
-from .V import V
+from .V import D, V
 
 
 class I(Interpreter[Token, None], ErrorStorage):
    def start(self, node: Tree):
+      self.root = node
       self.visit_children(node)
 
    def func(self, node: Tree, qualprefix: str | None = None) -> int:
@@ -20,7 +21,7 @@ class I(Interpreter[Token, None], ErrorStorage):
       body = cast(Tree, node.children[-1])
       qualname = qualprefix + str(name) if qualprefix else str(name)
       qualparameters = [str(i) for i in parameters]
-      if redeclaration := self.functions.get(name):
+      if redeclaration := self.functions.get(qualname):
          self.add_error(f"Redeclration of function {redeclaration}")
       self.functions[qualname] = (len(self.functions), Function(qualname, qualparameters, [], []), body)
       return self.functions[qualname][0]
@@ -51,13 +52,14 @@ class I(Interpreter[Token, None], ErrorStorage):
             field_map[id] = len(field_map)
       self.structs[name] = len(self.structs), Prototype(qualname, field_map, method_map)
 
-   def package(self, output_file: IO[str]):
+   def package(self, file: str, output_file: IO[str]):
       reserved = ReservedIdents.from_ident_map(self.ident_map)
       data = Data(
          [i[1] for i in self.functions.values()],
          [i[1] for i in self.structs.values()],
          {v: k for k, v in self.ident_map.items()},
          reserved,
+         files=[file],
       )
       json.dump(to_json(data), output_file, indent=4)
 
@@ -70,9 +72,10 @@ class I(Interpreter[Token, None], ErrorStorage):
       if "main" not in self.functions:
          self.add_error("No main function", suggestion=("Consider adding a main function", Range(0, 0, 0), "main() {}"))
       for _, function, body in self.functions.values():
+         d = D(self, function)
          v = V(self, function)
          for parameter in function.parameters:
             v.variables[parameter] = len(v.variables)
-         function.body = v.transform(body)
+         function.body = v.transform(d.transform(body))
          self.errors_from(v)
          function.variables = list(v.variables.keys())

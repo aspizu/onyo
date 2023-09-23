@@ -1,0 +1,21 @@
+Random {
+   seed
+
+   next(self) {
+      ; Linear congruential generator (LCG) algorithm
+      ; <https://en.wikipedia.org/wiki/Linear_congruential_generator>;
+      ; modulo is 2^64 because int = i64
+      multiplier = 6364136223846793005
+      increment = 1
+      self.seed = multiplier * self.seed + increment
+      return self.seed
+   }
+}
+
+random() {
+   return Random { seed = 42 }
+}
+
+random_with_seed(seed) {
+   return Random { seed = seed }
+}

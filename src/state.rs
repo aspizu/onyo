@@ -1,6 +1,6 @@
 use std::{cell::RefCell, iter::repeat, ops::Drop, process::exit, rc::Rc};
 
-use crate::{ir::*, value::*};
+use crate::{ir::*, plugins::plugin_call, value::*};
 
 /// This struct stores mutable state of the program.
 #[derive(Debug)]
@@ -15,9 +15,12 @@ impl State {
       Self { variables: vec![], variables_begin: 0 }
    }
 
-   pub fn die(&mut self, data: &Data, value: Value) -> ! {
+   pub fn die(&mut self, data: &Data, value: Value, range: Option<&Range>) -> ! {
       let mut into = String::new();
       value.fmt(data, &mut into);
+      if let Some(range) = range {
+         println!("at {}:{}:{}", data.files[range.file], 1 + range.line, 1 + range.col);
+      }
       println!("die: {into}");
       exit(1)
    }
@@ -166,14 +169,14 @@ impl Expr {
       value
    }
 
-   fn die(data: &Data, state: &mut State, expr: &Expr) -> ! {
+   fn die(data: &Data, state: &mut State, expr: &Expr, range: &Range) -> ! {
       let err = expr.eval(data, state);
-      state.die(data, err)
+      state.die(data, err, Some(range))
    }
 
-   fn or_die(data: &Data, state: &mut State, expr: &Expr) -> Value {
+   fn or_die(data: &Data, state: &mut State, expr: &Expr, range: &Range) -> Value {
       match expr.eval(data, state) {
-         Value::Err(err) => state.die(data, Value::Err(err)),
+         Value::Err(err) => state.die(data, Value::Err(err), Some(range)),
          a => return a
       }
    }
@@ -192,7 +195,7 @@ impl Expr {
       }
    }
 
-   fn eval(&self, data: &Data, state: &mut State) -> Value {
+   pub fn eval(&self, data: &Data, state: &mut State) -> Value {
       match self {
          Expr::Literal { literal } => match literal {
             // FIXME: Cache literals.
@@ -253,6 +256,7 @@ impl Expr {
             NaryOperator::List => Expr::make_list(parameters, data, state)
          },
          Expr::Call { callable, parameters } => Expr::call(data, state, callable, parameters),
+         Expr::Plugin { id, parameters } => plugin_call(data, state, *id, parameters),
          Expr::SetVar { variable, expr } => {
             let value = expr.eval(data, state);
             Expr::set_variable(state, variable, &value);
@@ -261,8 +265,8 @@ impl Expr {
          Expr::Struct { prototype, values } => Expr::make_struct(prototype, values, data, state),
          Expr::SetField { instance, field_id, value } => Expr::set_field(value, data, state, instance, field_id),
          Expr::GetField { instance, field_id } => instance.eval(data, state).get_field(data, *field_id),
-         Expr::Die { expr } => Expr::die(data, state, expr),
-         Expr::OrDie { expr } => Expr::or_die(data, state, expr)
+         Expr::Die { expr, range } => Expr::die(data, state, expr, range),
+         Expr::OrDie { expr, range } => Expr::or_die(data, state, expr, range)
       }
    }
 }

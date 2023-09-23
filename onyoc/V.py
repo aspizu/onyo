@@ -37,6 +37,17 @@ def flatten(self: "V", args: tuple[T]) -> T:
    return args[0]
 
 
+class D(Transformer[Token, Any], ErrorStorage):
+   def __init__(self, i: "I", function: Function):
+      ErrorStorage.__init__(self)
+      self.i = i
+      self.function = function
+      self.variables: dict[str, int] = {}
+
+   def lmbda(self, args: list[Any]):
+      print("Lambda defined", args)
+
+
 class V(Transformer[Token, Block], ErrorStorage):
    functions = {
       "print": unary_operation(UnaryOperator.Print),
@@ -142,7 +153,7 @@ class V(Transformer[Token, Block], ErrorStorage):
       return self.elsegen(args, None)
 
    def ifelifelse(self, args: list[Any]):
-      return Exec.Branch(args[0], args[1], [self.elsegen(args[2:], args[-1])])
+      return Exec.Branch(args[0], args[1], [self.elsegen(args[2:-1], args[-1])])
 
    def elsegen(self, args: list[Any], otherwise: list[Any] | None):
       return Exec.Branch(args[0], args[1], [self.elsegen(args[2:], otherwise)] if len(args) > 2 else (otherwise or []))
@@ -164,22 +175,41 @@ class V(Transformer[Token, Block], ErrorStorage):
    def geq(self, args: tuple[ExprT, ExprT]):
       return Expr.UnaryOperation(UnaryOperator.Not, self.lt(args))
 
-   def call(self, args: list[Any]):
-      name: Token = args[0]
-      params: list[ExprT] = optional_list(args[1:])
+   def call(self, args: list[ExprT]):
+      name = cast(Token, args[0])
       qualname = str(name)
+      return self.__call(name, qualname, args[1:] if len(args) >= 1 and isinstance(args[0], Token) else args)
+
+   def __call(self, name: Token, qualname: str, args: list[ExprT]):
+      if args[-1] is None:  # type: ignore
+         args.pop()
       if generator := self.functions.get(qualname):
-         return generator(self, params)  # type: ignore
-      elif (variable := self.variables.get(name)) is not None:
-         return Expr.Call(Expr.Reference(Reference.Variable(variable)), params)
-      elif function := self.i.functions.get(name):
-         return Expr.Call(Expr.Reference(Reference.Function(function[0])), params)
+         return generator(self, args)  # type: ignore
+      elif (variable := self.variables.get(qualname)) is not None:
+         return Expr.Call(Expr.Reference(Reference.Variable(variable)), args)
+      elif function := self.i.functions.get(qualname):
+         return Expr.Call(Expr.Reference(Reference.Function(function[0])), args)
+      elif plugin := PLUGINS.get(qualname):
+         return Expr.Plugin(plugin.id, args)
       else:
          self.add_error(
             f"Undefined function `{qualname}`",
             range=Range.from_token(name),
             typo=typo(qualname, chain(self.functions.keys(), self.i.functions.keys())),
          )
+      return Expr.Literal(Literal.Nil())
+
+   def chain(self, args: list[ExprT]):
+      acc = args[0]
+      func = cast(Token, args[1])
+      params = args[2:]
+      return self.__call(func, str(func), [acc, *params])
+
+   def vchain(self, args: list[ExprT]):
+      acc = args[0]
+      func = args[1]
+      params = args[2:]
+      return Expr.Call(func, [acc, *params])
 
    def vcall(self, args: list[ExprT]):
       callable = args[0]
@@ -212,11 +242,11 @@ class V(Transformer[Token, Block], ErrorStorage):
 
    def die(self, args: tuple[ExprT]):
       expr = args[0]
-      return Expr.Die(expr)
+      return Expr.Die(expr, IRRange(0, 0, 0, 0))
 
    def ordie(self, args: tuple[ExprT]):
       expr = args[0]
-      return Expr.OrDie(expr)
+      return Expr.OrDie(expr, IRRange(0, 0, 0, 0))
 
    def list(self, args: list[Any]):
       args = optional_list(args)

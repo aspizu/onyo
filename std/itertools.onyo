@@ -164,7 +164,7 @@ Map {
 
    next(self) {
       next = self.iterator.next()
-      return if next == iterend then next else self.func(next)
+      return if next == iterend then iterend else self.func(next)
    }
 }
 
@@ -372,8 +372,4 @@ Range {
 
 range(start, end, step) {
    return Range { i = start, end = end, step = step }
-}
-
-main() {
-   join(intersperse(iter(["One", "Two", "Three"]), ", "), "")
 }

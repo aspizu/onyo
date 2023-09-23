@@ -74,7 +74,7 @@ static TYPE_NAME_INT: &str = "int";
 static TYPE_NAME_FLOAT: &str = "float";
 static TYPE_NAME_STR: &str = "str";
 static TYPE_NAME_LIST: &str = "list";
-static TYPE_NAME_STRUCT: &str = "struct";
+//static TYPE_NAME_STRUCT: &str = "struct";
 static TYPE_NAME_FUNCTION: &str = "function";
 
 // Cache for the values returned by the type name operator.
@@ -87,7 +87,7 @@ thread_local! {
    static TYPE_NAME_FLOAT_VALUE: Value = TYPE_NAME_FLOAT.into();
    static TYPE_NAME_STR_VALUE: Value = TYPE_NAME_STR.into();
    static TYPE_NAME_LIST_VALUE: Value = TYPE_NAME_LIST.into();
-   static TYPE_NAME_STRUCT_VALUE: Value = TYPE_NAME_STRUCT.into();
+   //static TYPE_NAME_STRUCT_VALUE: Value = TYPE_NAME_STRUCT.into();
    static TYPE_NAME_FUNCTION_VALUE: Value = TYPE_NAME_FUNCTION.into();
 }
 
@@ -206,12 +206,12 @@ impl Value {
 
    pub fn mul(self, right: Value) -> Value {
       match (self, right) {
-         (Value::Bool(left), Value::Bool(right)) => (left as i64 * right as i64).into(),
-         (Value::Bool(left), Value::Int(right)) => (left as i64 * right).into(),
+         (Value::Bool(left), Value::Bool(right)) => (left as i64).wrapping_mul(right as i64).into(),
+         (Value::Bool(left), Value::Int(right)) => right.wrapping_mul(left as i64).into(),
          (Value::Bool(left), Value::Float(right)) => (f64::from(left) * right).into(),
-         (Value::Int(left), Value::Bool(right)) => (left * right as i64).into(),
+         (Value::Int(left), Value::Bool(right)) => left.wrapping_mul(right as i64).into(),
          (Value::Float(left), Value::Bool(right)) => (left * f64::from(right)).into(),
-         (Value::Int(left), Value::Int(right)) => (left * right).into(),
+         (Value::Int(left), Value::Int(right)) => left.wrapping_mul(right).into(),
          (Value::Int(left), Value::Float(right)) => (left as f64 * right).into(),
          (Value::Float(left), Value::Int(right)) => (left * right as f64).into(),
          (Value::Float(left), Value::Float(right)) => (left * right).into(),
@@ -267,6 +267,8 @@ impl Value {
 
    pub fn eq(&self, other: &Value) -> bool {
       match (self, other) {
+         (Value::Nil, Value::Nil) => true,
+         (Value::IterEnd, Value::IterEnd) => true,
          (Value::Bool(left), Value::Bool(right)) => left == right,
          (&Value::Bool(left), &Value::Int(right)) => left as i64 == right,
          (&Value::Bool(left), &Value::Float(right)) => left as i64 as f64 == right,
@@ -289,6 +291,8 @@ impl Value {
    /// equal but unique values.
    pub fn is(&self, other: &Value) -> bool {
       match (self, other) {
+         (Value::Nil, Value::Nil) => true,
+         (Value::IterEnd, Value::IterEnd) => true,
          (Value::Err(left), Value::Err(right)) => left.is(right),
          (Value::Str(left), Value::Str(right)) => Rc::ptr_eq(left, right),
          (Value::List(left), Value::List(right)) => Rc::ptr_eq(left, right),
@@ -445,7 +449,7 @@ impl Value {
          Value::Bool(bool) => (bool as i64).into(),
          Value::Int(..) => self,
          Value::Float(float) => (float as i64).into(),
-         Value::Str(..) => unimplemented!(),
+         Value::Str(str) => str.parse::<i64>().ok().and_then(|v| Some(v.into())).unwrap_or(Value::Nil),
          _ => Value::Nil
       }
    }
@@ -455,7 +459,7 @@ impl Value {
          Value::Bool(bool) => f64::from(bool).into(),
          Value::Int(int) => (int as f64).into(),
          Value::Float(..) => self,
-         Value::Str(..) => unimplemented!(),
+         Value::Str(str) => str.parse::<f64>().ok().and_then(|v| Some(v.into())).unwrap_or(Value::Nil),
          _ => Value::Nil
       }
    }

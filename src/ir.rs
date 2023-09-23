@@ -11,7 +11,20 @@ pub struct Data {
    pub prototypes: Vec<Prototype>,
    /// ident id -> ident name
    pub ident_map: BTreeMap<usize, String>,
-   pub reserved_idents: ReservedIdents
+   pub reserved_idents: ReservedIdents,
+   pub files: Vec<String>
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Range {
+   /// Index for Data.files
+   pub file: usize,
+   /// 0-indexed line number
+   pub line: usize,
+   /// 0-indexed column number
+   pub col: usize,
+   /// length of token
+   pub len: usize
 }
 
 #[derive(Debug, Deserialize)]
@@ -155,10 +168,11 @@ pub enum Expr {
    TernaryOperation { operator: TernaryOperator, first: Box<Expr>, second: Box<Expr>, third: Box<Expr> },
    NaryOperation { operator: NaryOperator, parameters: Vec<Expr> },
    Call { callable: Box<Expr>, parameters: Vec<Expr> },
+   Plugin { id: usize, parameters: Vec<Expr> },
    Struct { prototype: usize, values: Vec<Expr> },
    SetVar { variable: Reference, expr: Box<Expr> },
    SetField { instance: Box<Expr>, field_id: usize, value: Box<Expr> },
    GetField { instance: Box<Expr>, field_id: usize },
-   Die { expr: Box<Expr> },
-   OrDie { expr: Box<Expr> }
+   Die { expr: Box<Expr>, range: Range },
+   OrDie { expr: Box<Expr>, range: Range }
 }
